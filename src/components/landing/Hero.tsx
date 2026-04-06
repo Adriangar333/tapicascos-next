@@ -53,15 +53,14 @@ export default function Hero() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-          <a href="#servicios" className="btn-primary text-lg px-8 py-4">
-            Ver Servicios y Precios
+          <a href="/cotizar" className="btn-primary text-lg px-8 py-4">
+            Cotizar mi casco
           </a>
           <a
-            href="https://wa.me/573001234567?text=Hola%20quiero%20cotizar%20un%20servicio"
-            target="_blank"
+            href="#servicios"
             className="px-8 py-4 rounded-xl border border-white/20 text-white font-semibold hover:bg-white/5 transition-all text-lg text-center"
           >
-            Cotizar por WhatsApp
+            Ver Servicios y Precios
           </a>
         </div>
 
@@ -84,11 +83,6 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
-        <span className="text-xs text-gray-500 uppercase tracking-widest">Explorar</span>
-        <div className="w-px h-8 bg-gradient-to-b from-[#FF6B35] to-transparent" />
-      </div>
     </section>
   )
 }
