@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
-import { createBeforeAfter, deleteBeforeAfter, toggleBeforeAfter } from './actions'
+import { deleteBeforeAfter, toggleBeforeAfter } from './actions'
+import UploadForm from './UploadForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,46 +20,7 @@ export default async function AdminBeforeAfterPage() {
         en la landing como un slider interactivo.
       </p>
 
-      {/* Create form */}
-      <form action={createBeforeAfter} className="p-6 rounded-2xl border border-white/10 bg-white/5 mb-10 space-y-4">
-        <h2 className="text-lg font-bold">Nuevo par de fotos</h2>
-
-        <div>
-          <label className="block text-sm text-gray-300 mb-1">Título *</label>
-          <input name="title" required className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10" placeholder="Ej: Shaft 551 restaurado" />
-        </div>
-
-        <div>
-          <label className="block text-sm text-gray-300 mb-1">Descripción</label>
-          <input name="description" className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10" placeholder="Tapizado integral con cuero premium" />
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">URL foto ANTES *</label>
-            <input name="before_url" required className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10" placeholder="https://..." />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">URL foto DESPUÉS *</label>
-            <input name="after_url" required className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Orden</label>
-            <input name="sort_order" type="number" defaultValue={0} className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10" />
-          </div>
-          <label className="flex items-center gap-2 mt-6 text-sm">
-            <input type="checkbox" name="active" defaultChecked /> Activo
-          </label>
-        </div>
-
-        <button type="submit" className="btn-primary">Agregar</button>
-        <p className="text-xs text-gray-500">
-          Tip: sube las fotos primero al bucket <code>images</code> de Supabase Storage o a la galería, copia su URL pública y pégala aquí.
-        </p>
-      </form>
+      <UploadForm />
 
       {/* List */}
       <div className="space-y-4">
