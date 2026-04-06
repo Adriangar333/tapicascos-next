@@ -10,36 +10,8 @@ const HELMET_IMAGE = 'https://afrunlbsblvixfihdnta.supabase.co/storage/v1/object
 export default function Hero() {
   const counterRef = useRef<HTMLSpanElement>(null)
   const rootRef = useRef<HTMLElement>(null)
-  const typedRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
-    // Typewriter terminal effect
-    const phrases = ['INITIALIZING...', 'SCAN COMPLETE', 'STATUS: PREMIUM', 'LOCK ACQUIRED']
-    let phraseIdx = 0
-    let charIdx = 0
-    let deleting = false
-    const type = () => {
-      const el = typedRef.current
-      if (!el) return
-      const full = phrases[phraseIdx]
-      if (!deleting) {
-        el.textContent = full.slice(0, ++charIdx)
-        if (charIdx === full.length) {
-          deleting = true
-          setTimeout(type, 1600)
-          return
-        }
-      } else {
-        el.textContent = full.slice(0, --charIdx)
-        if (charIdx === 0) {
-          deleting = false
-          phraseIdx = (phraseIdx + 1) % phrases.length
-        }
-      }
-      setTimeout(type, deleting ? 35 : 70)
-    }
-    const typeTimeout = setTimeout(type, 1400)
-
     const target = 5000
     let current = 0
     const increment = target / 80
@@ -95,42 +67,10 @@ export default function Hero() {
         repeat: -1,
         yoyo: true,
       })
-
-      // Targeting lock-in: brackets travel from outside → final position
-      gsap.from('.hero-bracket-tl', { x: -40, y: -40, duration: 1.1, delay: 0.8, ease: 'power3.out' })
-      gsap.from('.hero-bracket-tr', { x: 40, y: -40, duration: 1.1, delay: 0.8, ease: 'power3.out' })
-      gsap.from('.hero-bracket-bl', { x: -40, y: 40, duration: 1.1, delay: 0.8, ease: 'power3.out' })
-      gsap.from('.hero-bracket-br', { x: 40, y: 40, duration: 1.1, delay: 0.8, ease: 'power3.out' })
-
-      // Vertical scanning beam
-      gsap.fromTo(
-        '.hero-scan',
-        { top: '0%', opacity: 0 },
-        {
-          top: '100%',
-          opacity: 1,
-          duration: 2.8,
-          ease: 'none',
-          repeat: -1,
-          delay: 1.6,
-          repeatDelay: 0.6,
-        }
-      )
-
-      // Data readouts fade in sequentially
-      gsap.from('.hero-data', {
-        opacity: 0,
-        x: 20,
-        duration: 0.6,
-        delay: 1.4,
-        stagger: 0.15,
-        ease: 'power2.out',
-      })
     }, rootRef)
 
     return () => {
       clearInterval(timer)
-      clearTimeout(typeTimeout)
       ctx.revert()
     }
   }, [])
@@ -262,46 +202,19 @@ export default function Hero() {
                 />
                 {/* Top shine */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
-
-                {/* Scanning beam (travels top→bottom inside hex) */}
-                <div
-                  className="hero-scan absolute left-0 right-0 h-[3px] pointer-events-none"
-                  style={{
-                    background:
-                      'linear-gradient(90deg, transparent, #FF6B35 30%, #FFD700 50%, #FF6B35 70%, transparent)',
-                    boxShadow: '0 0 20px #FF6B35, 0 0 40px #FF6B35',
-                  }}
-                />
               </div>
             </div>
 
-            {/* Targeting corner brackets — L-shaped, 4 corners */}
-            <div className="hero-bracket-tl absolute top-2 left-10 w-5 h-5 border-t-2 border-l-2 border-[#FF6B35]" />
-            <div className="hero-bracket-tr absolute top-2 right-10 w-5 h-5 border-t-2 border-r-2 border-[#FF6B35]" />
-            <div className="hero-bracket-bl absolute bottom-2 left-10 w-5 h-5 border-b-2 border-l-2 border-[#FF6B35]" />
-            <div className="hero-bracket-br absolute bottom-2 right-10 w-5 h-5 border-b-2 border-r-2 border-[#FF6B35]" />
+            {/* Corner brackets — industrial targeting feel */}
+            <div className="hero-corner absolute top-0 left-1/2 -translate-x-1/2 w-6 h-6 border-t-2 border-[#FF6B35]" />
+            <div className="hero-corner absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-6 border-b-2 border-[#FF6B35]" />
+            <div className="hero-corner absolute left-0 top-1/2 -translate-y-1/2 w-6 h-6 border-l-2 border-[#FF6B35]" />
+            <div className="hero-corner absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 border-r-2 border-[#FF6B35]" />
 
-            {/* Side data readouts */}
-            <div className="hero-data absolute left-0 top-[30%] -translate-x-2 md:-translate-x-6 font-mono text-[9px] md:text-[10px] text-[#FF6B35]/70 tracking-widest uppercase writing-vertical">
-              <div className="flex flex-col gap-1">
-                <span>IRIDIUM</span>
-                <span className="text-white/40">━━━━</span>
-                <span>DOT · CERT</span>
-              </div>
-            </div>
-            <div className="hero-data absolute right-0 top-[60%] translate-x-2 md:translate-x-4 font-mono text-[9px] md:text-[10px] text-[#FFD700]/70 tracking-widest uppercase text-right">
-              <div className="flex flex-col gap-1 items-end">
-                <span>{'>'} AEROGRAFO</span>
-                <span className="text-white/40">━━━━</span>
-                <span>{'>'} SHAFT 551</span>
-              </div>
-            </div>
-
-            {/* Tech label bottom-right — with typewriter status */}
+            {/* Tech label bottom-right */}
             <div className="hero-corner absolute -bottom-2 right-6 md:right-10 flex items-center gap-2 px-3 py-1.5 bg-[#0A0E1A] border border-[#FF6B35]/40 text-[10px] md:text-xs font-mono tracking-[0.2em] text-[#FF6B35] uppercase">
               <span className="w-1.5 h-1.5 bg-[#FF6B35] animate-pulse" />
-              <span ref={typedRef}>&nbsp;</span>
-              <span className="inline-block w-[1px] h-3 bg-[#FF6B35] animate-pulse" />
+              Premium · 001
             </div>
             {/* Tech label top-left */}
             <div className="hero-corner absolute -top-2 left-6 md:left-10 px-3 py-1.5 bg-[#0A0E1A] border border-white/20 text-[10px] md:text-xs font-mono tracking-[0.25em] text-white/70 uppercase">
