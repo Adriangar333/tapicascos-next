@@ -45,10 +45,20 @@ export default async function CotizacionesPage() {
                       {q.phone}{q.email ? ` · ${q.email}` : ''}
                     </p>
                   </div>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center flex-wrap">
                     <span className="px-3 py-1 text-xs rounded-full bg-[#FF6B35]/20 text-[#FF6B35]">
                       {serviceLabels[q.service_type] ?? q.service_type}
                     </span>
+                    {q.source && q.source !== 'direct' && (
+                      <span className="px-3 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300">
+                        {q.source}
+                      </span>
+                    )}
+                    {q.service_slug && (
+                      <span className="px-3 py-1 text-xs rounded-full bg-white/10 text-gray-300">
+                        {q.service_slug}
+                      </span>
+                    )}
                     <span className="text-xs text-gray-500">
                       {new Date(q.created_at).toLocaleDateString('es-CO', {
                         day: '2-digit', month: 'short', year: 'numeric',

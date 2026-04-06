@@ -14,6 +14,8 @@ export async function submitQuote(formData: FormData) {
     color_preference: String(formData.get('color_preference') ?? '').trim() || null,
     description: String(formData.get('description') ?? '').trim(),
     budget_range: String(formData.get('budget_range') ?? '').trim() || null,
+    source: String(formData.get('source') ?? '').trim() || 'direct',
+    service_slug: String(formData.get('service_slug') ?? '').trim() || null,
   }
 
   if (!payload.name || !payload.phone || !payload.service_type || !payload.description) {

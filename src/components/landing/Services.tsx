@@ -143,13 +143,22 @@ export default function Services({ categories, services }: ServicesProps) {
               </div>
 
               {/* CTA */}
-              <a
-                href={`https://wa.me/573001234567?text=Hola%20quiero%20cotizar%20${encodeURIComponent(service.name)}`}
-                target="_blank"
-                className="btn-primary text-sm px-5 py-2.5 flex-shrink-0 whitespace-nowrap"
-              >
-                Cotizar
-              </a>
+              <div className="flex flex-col gap-2 flex-shrink-0">
+                <a
+                  href={`/cotizar?servicio=${service.slug ?? ''}`}
+                  className="btn-primary text-sm px-5 py-2.5 whitespace-nowrap text-center"
+                >
+                  Cotizar
+                </a>
+                {service.slug && (
+                  <a
+                    href={`/servicios/${service.slug}`}
+                    className="text-xs text-gray-400 hover:text-[#FF6B35] text-center transition-colors"
+                  >
+                    Ver detalles →
+                  </a>
+                )}
+              </div>
             </div>
           ))}
         </div>

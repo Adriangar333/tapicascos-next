@@ -12,10 +12,13 @@ export interface Service {
   id: string
   category_id: string
   name: string
+  slug: string | null
   description: string | null
+  long_description?: string | null
   price_min: number
   price_max: number | null
   image_url: string | null
+  gallery_urls?: string[] | null
   sort_order: number
   active: boolean
   featured: boolean
