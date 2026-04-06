@@ -30,5 +30,9 @@ export async function submitQuote(formData: FormData) {
     redirect('/cotizar?error=db')
   }
 
-  redirect('/cotizar/gracias')
+  const params = new URLSearchParams({
+    n: payload.name,
+    s: payload.service_type,
+  })
+  redirect(`/cotizar/gracias?${params.toString()}`)
 }
