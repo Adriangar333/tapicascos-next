@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, Wrench, Image, MessageSquare, Settings, LogOut, ChevronLeft, FileText } from 'lucide-react'
+import { LayoutDashboard, Wrench, Image, MessageSquare, Settings, LogOut, ChevronLeft, FileText, Link2 } from 'lucide-react'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/cotizaciones', label: 'Cotizaciones', icon: FileText },
+  { href: '/admin/compartir', label: 'Generar links', icon: Link2 },
   { href: '/admin/servicios', label: 'Servicios', icon: Wrench },
   { href: '/admin/galeria', label: 'Galería', icon: Image },
   { href: '/admin/testimonios', label: 'Testimonios', icon: MessageSquare },
