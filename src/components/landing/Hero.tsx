@@ -67,6 +67,21 @@ export default function Hero() {
         repeat: -1,
         yoyo: true,
       })
+
+      // Scanning beam (travels top→bottom)
+      gsap.fromTo(
+        '.hero-scan',
+        { top: '0%', opacity: 0 },
+        {
+          top: '100%',
+          opacity: 1,
+          duration: 2.8,
+          ease: 'none',
+          repeat: -1,
+          delay: 1.2,
+          repeatDelay: 0.6,
+        }
+      )
     }, rootRef)
 
     return () => {
@@ -202,6 +217,16 @@ export default function Hero() {
                 />
                 {/* Top shine */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
+
+                {/* Scanning beam */}
+                <div
+                  className="hero-scan absolute left-0 right-0 h-[3px] pointer-events-none"
+                  style={{
+                    background:
+                      'linear-gradient(90deg, transparent, #FF6B35 30%, #FFD700 50%, #FF6B35 70%, transparent)',
+                    boxShadow: '0 0 20px #FF6B35, 0 0 40px #FF6B35',
+                  }}
+                />
               </div>
             </div>
 
