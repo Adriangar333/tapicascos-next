@@ -45,12 +45,12 @@ export default function Gallery({ items }: GalleryProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="flex flex-wrap justify-center gap-4">
             {gallery.filter(g => g.active).map((item) => (
               <button
                 key={item.id}
                 onClick={() => setLightbox(item.image_url)}
-                className="group relative aspect-square rounded-xl overflow-hidden image-shine cursor-pointer"
+                className="group relative aspect-square rounded-xl overflow-hidden image-shine cursor-pointer basis-[calc(50%-0.5rem)] md:basis-[calc(33.333%-0.75rem)] lg:basis-[calc(25%-0.75rem)] max-w-xs"
               >
                 <Image
                   src={item.image_url}
