@@ -5,14 +5,13 @@ import Image from 'next/image'
 import gsap from 'gsap'
 import HeroCanvas from './HeroCanvas'
 
-const HELMET_IMAGE = 'https://afrunlbsblvixfihdnta.supabase.co/storage/v1/object/public/images/tapizado-shaft-551-tipo-original.jpeg'
+const HELMET_IMAGE = 'https://afrunlbsblvixfihdnta.supabase.co/storage/v1/object/public/images/pintura-personalizada-1.jpeg'
 
 export default function Hero() {
   const counterRef = useRef<HTMLSpanElement>(null)
   const rootRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    // Animated counter
     const target = 5000
     let current = 0
     const increment = target / 80
@@ -27,7 +26,6 @@ export default function Hero() {
       }
     }, 25)
 
-    // GSAP entrance + float loop
     const ctx = gsap.context(() => {
       gsap.from('.hero-badge', { y: -20, opacity: 0, duration: 0.8, ease: 'power3.out' })
       gsap.from('.hero-title-1', { y: 60, opacity: 0, duration: 1, delay: 0.15, ease: 'power4.out' })
@@ -36,36 +34,35 @@ export default function Hero() {
       gsap.from('.hero-cta', { y: 30, opacity: 0, duration: 0.8, delay: 0.75, stagger: 0.12, ease: 'power3.out' })
       gsap.from('.hero-trust', { y: 20, opacity: 0, duration: 0.8, delay: 1, stagger: 0.1, ease: 'power2.out' })
 
-      gsap.from('.hero-helmet', {
-        scale: 0.6,
+      gsap.from('.hero-frame', {
+        scale: 0.85,
         opacity: 0,
-        rotate: -15,
         duration: 1.4,
-        delay: 0.4,
+        delay: 0.3,
         ease: 'power4.out',
       })
-
-      // Float loop
-      gsap.to('.hero-helmet', {
-        y: -25,
-        duration: 3,
-        ease: 'sine.inOut',
-        repeat: -1,
-        yoyo: true,
+      gsap.from('.hero-corner', {
+        opacity: 0,
+        scale: 0.5,
+        duration: 0.8,
+        delay: 1.2,
+        stagger: 0.1,
+        ease: 'power3.out',
       })
-      gsap.to('.hero-helmet', {
-        rotate: 3,
-        duration: 5,
+
+      // Subtle float
+      gsap.to('.hero-frame', {
+        y: -12,
+        duration: 4,
         ease: 'sine.inOut',
         repeat: -1,
         yoyo: true,
       })
 
       // Glow pulse
-      gsap.to('.hero-helmet-glow', {
-        opacity: 0.9,
-        scale: 1.1,
-        duration: 2.5,
+      gsap.to('.hero-glow', {
+        opacity: 0.75,
+        duration: 3,
         ease: 'sine.inOut',
         repeat: -1,
         yoyo: true,
@@ -78,40 +75,50 @@ export default function Hero() {
     }
   }, [])
 
+  const hex = 'polygon(25% 2%, 75% 2%, 98% 50%, 75% 98%, 25% 98%, 2% 50%)'
+
   return (
     <section ref={rootRef} className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 pb-16">
-      {/* Background gradient */}
+      {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A0E1A] via-[#0F1428] to-[#0A0E1A]" />
 
-      {/* Glow orbs */}
-      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#FF6B35] opacity-[0.08] rounded-full blur-[140px] animate-pulse" />
-      <div className="absolute bottom-1/4 right-1/4 w-[420px] h-[420px] bg-[#FFD700] opacity-[0.05] rounded-full blur-[120px]" />
+      {/* Industrial grid overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,107,53,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,107,53,0.5) 1px, transparent 1px)',
+          backgroundSize: '64px 64px',
+          maskImage: 'radial-gradient(ellipse at center, black 40%, transparent 80%)',
+          WebkitMaskImage: 'radial-gradient(ellipse at center, black 40%, transparent 80%)',
+        }}
+      />
 
-      {/* Three.js particles */}
+      {/* Accent glows */}
+      <div className="absolute top-1/3 left-1/5 w-[420px] h-[420px] bg-[#FF6B35] opacity-[0.09] rounded-full blur-[140px]" />
+      <div className="absolute bottom-1/4 right-1/5 w-[360px] h-[360px] bg-[#FFD700] opacity-[0.04] rounded-full blur-[120px]" />
+
+      {/* Three.js subtle particles */}
       <HeroCanvas />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-        {/* Left: Text content */}
+        {/* Left: Text */}
         <div className="text-center lg:text-left order-2 lg:order-1">
-          {/* Badge */}
           <div className="hero-badge inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-6">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-sm text-gray-300">Barranquilla, Colombia</span>
+            <span className="text-sm text-gray-300 uppercase tracking-[0.2em]">Barranquilla · CO</span>
           </div>
 
-          {/* Headline */}
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black leading-[0.95] mb-6">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black leading-[0.95] mb-6 tracking-tight">
             <span className="hero-title-1 block text-white">TU CASCO,</span>
             <span className="hero-title-2 block gradient-text">TU ESTILO</span>
           </h1>
 
-          {/* Subtitle */}
           <p className="hero-sub text-base md:text-lg text-gray-300 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
             Tapizado premium, pintura personalizada y accesorios para que tu casco
             refleje quién eres. Más de <span ref={counterRef} className="text-[#FF6B35] font-bold">+5,000</span> cascos transformados.
           </p>
 
-          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
             <a href="/cotizar" className="hero-cta btn-primary text-lg px-8 py-4">
               Cotizar mi casco
@@ -124,62 +131,94 @@ export default function Hero() {
             </a>
           </div>
 
-          {/* Trust indicators */}
           <div className="flex flex-wrap justify-center lg:justify-start gap-6 md:gap-10">
             <div className="hero-trust">
               <p className="text-2xl md:text-3xl font-bold text-[#FF6B35]">+10</p>
-              <p className="text-xs md:text-sm text-gray-500">Años de experiencia</p>
+              <p className="text-xs md:text-sm text-gray-500 uppercase tracking-wider">Años</p>
             </div>
             <div className="w-px h-12 bg-white/10" />
             <div className="hero-trust">
               <p className="text-2xl md:text-3xl font-bold text-[#FFD700]">5,000+</p>
-              <p className="text-xs md:text-sm text-gray-500">Cascos transformados</p>
+              <p className="text-xs md:text-sm text-gray-500 uppercase tracking-wider">Cascos</p>
             </div>
             <div className="w-px h-12 bg-white/10 hidden sm:block" />
             <div className="hero-trust">
               <p className="text-2xl md:text-3xl font-bold text-white">100%</p>
-              <p className="text-xs md:text-sm text-gray-500">Satisfacción</p>
+              <p className="text-xs md:text-sm text-gray-500 uppercase tracking-wider">Garantía</p>
             </div>
           </div>
         </div>
 
-        {/* Right: Helmet showcase */}
+        {/* Right: Helmet showcase — hexagonal industrial frame */}
         <div className="order-1 lg:order-2 relative flex items-center justify-center">
-          <div className="relative w-[320px] h-[320px] md:w-[450px] md:h-[450px] lg:w-[520px] lg:h-[520px]">
-            {/* Glow behind helmet */}
+          <div className="relative w-[340px] h-[380px] md:w-[460px] md:h-[510px] lg:w-[520px] lg:h-[580px]">
+            {/* Glow behind */}
             <div
-              className="hero-helmet-glow absolute inset-0 rounded-full blur-[80px] opacity-60"
+              className="hero-glow absolute inset-0 blur-[90px] opacity-50"
               style={{
-                background: 'radial-gradient(circle, #FF6B35 0%, #FFD700 40%, transparent 70%)',
+                background: 'radial-gradient(ellipse at center, #FF6B35 0%, #FFD700 35%, transparent 70%)',
               }}
             />
 
-            {/* Rotating ring */}
-            <div className="absolute inset-0 rounded-full border-2 border-[#FF6B35]/20 animate-[spin_20s_linear_infinite]" />
-            <div className="absolute inset-4 rounded-full border border-[#FFD700]/15 animate-[spin_30s_linear_infinite_reverse]" />
+            {/* Outer hex border accent */}
+            <div
+              className="absolute inset-0"
+              style={{
+                clipPath: hex,
+                background: 'linear-gradient(135deg, #FF6B35 0%, transparent 40%, transparent 60%, #FFD700 100%)',
+                padding: '2px',
+              }}
+            >
+              <div className="w-full h-full bg-[#0A0E1A]" style={{ clipPath: hex }} />
+            </div>
 
-            {/* Helmet image */}
-            <div className="hero-helmet absolute inset-0 flex items-center justify-center">
-              <div className="relative w-[85%] h-[85%] rounded-full overflow-hidden shadow-[0_20px_80px_rgba(255,107,53,0.4)]">
+            {/* Hex image frame */}
+            <div className="hero-frame absolute inset-[6px]" style={{ clipPath: hex }}>
+              <div className="relative w-full h-full">
                 <Image
                   src={HELMET_IMAGE}
-                  alt="Casco tapizado premium"
+                  alt="Casco personalizado premium Tapicascos"
                   fill
                   priority
-                  sizes="(max-width: 768px) 320px, (max-width: 1024px) 450px, 520px"
+                  sizes="(max-width: 768px) 340px, (max-width: 1024px) 460px, 520px"
                   className="object-cover"
+                  style={{ filter: 'contrast(1.1) saturate(1.1)' }}
                 />
-                {/* Shine overlay */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none" />
+                {/* Dark vignette for depth */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background:
+                      'radial-gradient(ellipse at center, transparent 40%, rgba(10,14,26,0.75) 100%)',
+                  }}
+                />
+                {/* Scanline effect */}
+                <div
+                  className="absolute inset-0 pointer-events-none opacity-[0.08] mix-blend-overlay"
+                  style={{
+                    backgroundImage:
+                      'repeating-linear-gradient(0deg, rgba(255,255,255,0.6) 0px, rgba(255,255,255,0.6) 1px, transparent 1px, transparent 3px)',
+                  }}
+                />
+                {/* Top shine */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
               </div>
             </div>
 
-            {/* Floating badges */}
-            <div className="absolute -top-2 -right-2 md:top-4 md:right-0 px-3 py-1.5 rounded-full bg-[#FF6B35] text-white text-xs font-bold shadow-lg shadow-[#FF6B35]/50 animate-bounce">
-              PREMIUM
+            {/* Corner brackets — industrial targeting feel */}
+            <div className="hero-corner absolute top-0 left-1/2 -translate-x-1/2 w-6 h-6 border-t-2 border-[#FF6B35]" />
+            <div className="hero-corner absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-6 border-b-2 border-[#FF6B35]" />
+            <div className="hero-corner absolute left-0 top-1/2 -translate-y-1/2 w-6 h-6 border-l-2 border-[#FF6B35]" />
+            <div className="hero-corner absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 border-r-2 border-[#FF6B35]" />
+
+            {/* Tech label bottom-right */}
+            <div className="hero-corner absolute -bottom-2 right-6 md:right-10 flex items-center gap-2 px-3 py-1.5 bg-[#0A0E1A] border border-[#FF6B35]/40 text-[10px] md:text-xs font-mono tracking-[0.2em] text-[#FF6B35] uppercase">
+              <span className="w-1.5 h-1.5 bg-[#FF6B35] animate-pulse" />
+              Premium · 001
             </div>
-            <div className="absolute bottom-4 -left-2 md:bottom-8 md:left-0 px-3 py-1.5 rounded-full glass text-[#FFD700] text-xs font-bold border border-[#FFD700]/30">
-              ★ Shaft 551
+            {/* Tech label top-left */}
+            <div className="hero-corner absolute -top-2 left-6 md:left-10 px-3 py-1.5 bg-[#0A0E1A] border border-white/20 text-[10px] md:text-xs font-mono tracking-[0.25em] text-white/70 uppercase">
+              Tapicascos / BAQ
             </div>
           </div>
         </div>
