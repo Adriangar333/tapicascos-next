@@ -6,17 +6,31 @@ import Testimonials from '@/components/landing/Testimonials'
 import Contact from '@/components/landing/Contact'
 import Footer from '@/components/landing/Footer'
 import WhatsAppButton from '@/components/landing/WhatsAppButton'
-// import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 export const revalidate = 60
 
 export default async function HomePage() {
-  // TODO: Fetch from Supabase when schema is ready
-  // const supabase = await createClient()
-  // const { data: categories } = await supabase.from('categories').select('*').eq('active', true).order('sort_order')
-  // const { data: services } = await supabase.from('services').select('*, category:categories(*)').eq('active', true).order('sort_order')
-  // const { data: gallery } = await supabase.from('gallery').select('*').eq('active', true).order('sort_order')
-  // const { data: testimonials } = await supabase.from('testimonials').select('*').eq('active', true)
+  let categories = null
+  let services = null
+  let gallery = null
+  let testimonials = null
+
+  try {
+    const supabase = await createClient()
+    const [catRes, svcRes, galRes, testRes] = await Promise.all([
+      supabase.from('categories').select('*').eq('active', true).order('sort_order'),
+      supabase.from('services').select('*, category:categories(*)').eq('active', true).order('sort_order'),
+      supabase.from('gallery').select('*').eq('active', true).order('sort_order'),
+      supabase.from('testimonials').select('*').eq('active', true),
+    ])
+    categories = catRes.data
+    services = svcRes.data
+    gallery = galRes.data
+    testimonials = testRes.data
+  } catch {
+    // Fallback to component defaults if Supabase unavailable
+  }
 
   return (
     <>
@@ -24,10 +38,10 @@ export default async function HomePage() {
       <main>
         <Hero />
         <div className="wave-separator" />
-        <Services />
+        <Services categories={categories ?? undefined} services={services ?? undefined} />
         <div className="wave-separator" />
-        <Gallery />
-        <Testimonials />
+        <Gallery items={gallery ?? undefined} />
+        <Testimonials testimonials={testimonials ?? undefined} />
         <div className="wave-separator" />
         <Contact />
       </main>
