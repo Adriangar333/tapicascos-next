@@ -1,5 +1,7 @@
 import Sidebar from '@/components/admin/Sidebar'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Admin | Tapicascos',
 }
