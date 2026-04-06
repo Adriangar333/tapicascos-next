@@ -12,12 +12,12 @@ const fallbackCategories: Category[] = [
 ]
 
 const fallbackServices: Service[] = [
-  { id: '1', category_id: '1', name: 'Tapizado Integral', description: 'Cambio completo del interior: espuma, tela y acabados premium', price_min: 45000, price_max: 85000, image_url: null, sort_order: 1, active: true, featured: true },
-  { id: '2', category_id: '1', name: 'Tapizado Parcial', description: 'Renovación de piezas específicas del interior', price_min: 15000, price_max: 40000, image_url: null, sort_order: 2, active: true, featured: false },
-  { id: '3', category_id: '1', name: 'Ajuste de Talla', description: 'Ajustamos la espuma para que tu casco quede perfecto', price_min: 20000, price_max: 35000, image_url: null, sort_order: 3, active: true, featured: false },
-  { id: '4', category_id: '2', name: 'Pintura Básica', description: 'Color sólido con acabado profesional', price_min: 50000, price_max: null, image_url: null, sort_order: 1, active: true, featured: false },
-  { id: '5', category_id: '2', name: 'Pintura Premium', description: 'Diseño personalizado con aerógrafo, efectos y detalles', price_min: 100000, price_max: 150000, image_url: null, sort_order: 2, active: true, featured: true },
-  { id: '6', category_id: '3', name: 'Tapizado de Silla', description: 'Tapizado completo con material resistente al agua', price_min: 35000, price_max: 80000, image_url: null, sort_order: 1, active: true, featured: true },
+  { id: '1', category_id: '1', name: 'Tapizado Integral', slug: 'tapizado-integral', description: 'Cambio completo del interior: espuma, tela y acabados premium', price_min: 45000, price_max: 85000, image_url: null, sort_order: 1, active: true, featured: true },
+  { id: '2', category_id: '1', name: 'Tapizado Parcial', slug: 'tapizado-parcial', description: 'Renovación de piezas específicas del interior', price_min: 15000, price_max: 40000, image_url: null, sort_order: 2, active: true, featured: false },
+  { id: '3', category_id: '1', name: 'Ajuste de Talla', slug: 'ajuste-de-talla', description: 'Ajustamos la espuma para que tu casco quede perfecto', price_min: 20000, price_max: 35000, image_url: null, sort_order: 3, active: true, featured: false },
+  { id: '4', category_id: '2', name: 'Pintura Básica', slug: 'pintura-basica', description: 'Color sólido con acabado profesional', price_min: 50000, price_max: null, image_url: null, sort_order: 1, active: true, featured: false },
+  { id: '5', category_id: '2', name: 'Pintura Premium', slug: 'pintura-premium', description: 'Diseño personalizado con aerógrafo, efectos y detalles', price_min: 100000, price_max: 150000, image_url: null, sort_order: 2, active: true, featured: true },
+  { id: '6', category_id: '3', name: 'Tapizado de Silla', slug: 'tapizado-de-silla', description: 'Tapizado completo con material resistente al agua', price_min: 35000, price_max: 80000, image_url: null, sort_order: 1, active: true, featured: true },
 ]
 
 function formatPrice(min: number, max: number | null): string {
