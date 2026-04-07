@@ -122,28 +122,26 @@ export default function Services({ categories, services }: ServicesProps) {
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-xl font-bold text-white">{service.name}</h3>
-                      {service.featured && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] font-medium">
-                          Popular
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-400 text-sm md:text-base">{service.description}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xl md:text-2xl font-bold text-[#FF6B35]">
-                      {formatPrice(service.price_min, service.price_max)}
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-xl font-bold text-white">{service.name}</h3>
+                  {service.featured && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] font-medium">
+                      Popular
+                    </span>
+                  )}
                 </div>
+                <p className="text-gray-400 text-sm md:text-base">{service.description}</p>
+              </div>
+
+              {/* Price — columna fija, siempre en la misma posición */}
+              <div className="w-full md:w-44 flex-shrink-0 md:text-right">
+                <p className="text-xl md:text-2xl font-bold text-[#FF6B35] whitespace-nowrap">
+                  {formatPrice(service.price_min, service.price_max)}
+                </p>
               </div>
 
               {/* CTA */}
-              <div className="flex flex-col gap-2 flex-shrink-0">
+              <div className="flex flex-col gap-2 flex-shrink-0 w-full md:w-auto">
                 <a
                   href={`/cotizar?servicio=${service.slug ?? ''}`}
                   className="btn-primary text-sm px-5 py-2.5 whitespace-nowrap text-center"
