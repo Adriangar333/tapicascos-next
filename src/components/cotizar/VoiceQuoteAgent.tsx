@@ -83,7 +83,7 @@ export default function VoiceQuoteAgent() {
   // Escribe en un input/textarea/select del form de forma que React y el server action lo detecten
   const setField = (name: string, value: string) => {
     const el = document.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
-      `[name="${name}"]`
+      `form [name="${name}"]`
     )
     if (!el) return
     const proto = el instanceof HTMLSelectElement
