@@ -218,6 +218,18 @@ export default function Hero() {
                 {/* Top shine */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
 
+                {/* Brand watermark — logo sello tactical */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <Image
+                    src="/logo-tapicascos.webp"
+                    alt=""
+                    aria-hidden
+                    width={320}
+                    height={320}
+                    className="w-[60%] h-auto opacity-[0.14] mix-blend-screen"
+                  />
+                </div>
+
                 {/* Scanning beam */}
                 <div
                   className="hero-scan absolute left-0 right-0 h-[3px] pointer-events-none"

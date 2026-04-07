@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 
 const links = [
   { href: '#servicios', label: 'Servicios' },
@@ -24,9 +25,19 @@ export default function Navbar() {
     }`}>
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
-        <a href="#" className="text-xl font-black">
-          <span className="text-[#FF6B35]">TAPI</span>
-          <span className="text-white">CASCOS</span>
+        <a href="#" className="flex items-center gap-3" aria-label="Tapicascos Barranquilla">
+          <Image
+            src="/logo-tapicascos.webp"
+            alt="Tapicascos Barranquilla"
+            width={44}
+            height={44}
+            priority
+            className="h-10 w-10 md:h-11 md:w-11 drop-shadow-[0_0_12px_rgba(255,107,53,0.35)]"
+          />
+          <span className="text-lg md:text-xl font-black leading-none">
+            <span className="text-[#FF6B35]">TAPI</span>
+            <span className="text-white">CASCOS</span>
+          </span>
         </a>
 
         {/* Desktop links */}
