@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { submitQuote } from './actions'
 import { createClient } from '@/lib/supabase/server'
-import VoiceQuoteAgent from '@/components/cotizar/VoiceQuoteAgent'
 
 export const metadata = {
   title: 'Cotiza tu casco | Tapicascos Barranquilla',
@@ -156,8 +155,6 @@ export default async function CotizarPage({
           </p>
         </form>
       </div>
-
-      <VoiceQuoteAgent />
     </main>
   )
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import VoicePreloader from "@/components/VoicePreloader";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -56,7 +55,6 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} antialiased`}>
       <body className="min-h-screen bg-[#0A0E1A] text-white font-[var(--font-inter)]">
-        <VoicePreloader />
         {children}
       </body>
     </html>
