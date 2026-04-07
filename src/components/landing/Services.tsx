@@ -134,8 +134,8 @@ export default function Services({ categories, services }: ServicesProps) {
               </div>
 
               {/* Price — columna fija, siempre en la misma posición */}
-              <div className="w-full md:w-44 flex-shrink-0 md:text-right">
-                <p className="text-xl md:text-2xl font-bold text-[#FF6B35] whitespace-nowrap">
+              <div className="w-full md:w-56 lg:w-60 flex-shrink-0 md:text-right">
+                <p className="text-lg md:text-xl lg:text-2xl font-bold text-[#FF6B35] whitespace-nowrap tabular-nums leading-tight">
                   {formatPrice(service.price_min, service.price_max)}
                 </p>
               </div>
