@@ -86,6 +86,13 @@ export async function POST(req: NextRequest) {
     ...history.map((m) => ({ role: m.role, content: m.content }) as OpenAIMessage),
   ]
 
+  let savedQuoteId: string | null = null
+  let assistantText = ''
+  let iterations = 0
+  let modelUsed = ''
+  let visionStatus: 'ok' | 'failed' | 'skipped' = 'skipped'
+  let visionDescription: string | null = null
+
   // Visión: si el usuario acaba de adjuntar foto, describirla con un modelo
   // multimodal ANTES del loop e inyectar el resultado como nota del sistema
   // para que Tapi no alucine detalles.
@@ -112,13 +119,6 @@ export async function POST(req: NextRequest) {
       console.warn('[agent/chat] vision error:', visionErr)
     }
   }
-
-  let savedQuoteId: string | null = null
-  let assistantText = ''
-  let iterations = 0
-  let modelUsed = ''
-  let visionStatus: 'ok' | 'failed' | 'skipped' = 'skipped'
-  let visionDescription: string | null = null
 
   try {
     while (iterations < MAX_ITERATIONS) {
