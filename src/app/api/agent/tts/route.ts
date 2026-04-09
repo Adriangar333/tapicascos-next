@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { synthesizeVibeVoice } from '@/lib/voice/vibevoice'
+import { synthesizeVibeVoice, getVibeVoiceSpace } from '@/lib/voice/vibevoice'
 import { checkRateLimit } from '@/lib/agent/rateLimit'
 
 export const runtime = 'nodejs'
@@ -39,15 +39,35 @@ export async function POST(req: NextRequest) {
     .slice(0, MAX_CHARS)
 
   const result = await synthesizeVibeVoice(text, { voice: body.voice })
-  if (!result) {
+  if (!result.ok) {
+    console.warn('[tts] vibevoice unavailable:', result.reason, result.space, result.status ?? '')
     return NextResponse.json(
-      { error: 'unavailable', fallback: 'browser' },
-      { status: 200 }
+      {
+        error: 'unavailable',
+        fallback: 'browser',
+        reason: result.reason,
+        space: result.space,
+        status: result.status,
+      },
+      { status: 200 },
     )
   }
 
   return NextResponse.json({
     audio: `data:${result.mime};base64,${result.audioBase64}`,
     provider: 'vibevoice',
+    space: result.space,
+  })
+}
+
+// Warmup endpoint: despierta el Space sin sintetizar nada.
+// Se llama desde el cron diario y desde el cliente al abrir el chat.
+export async function GET() {
+  const { warmVibeVoice } = await import('@/lib/voice/vibevoice')
+  const result = await warmVibeVoice()
+  return NextResponse.json({
+    space: getVibeVoiceSpace(),
+    warm: result.ok,
+    status: result.status,
   })
 }
