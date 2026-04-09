@@ -32,6 +32,24 @@ export const TOOLS: OpenAITool[] = [
   {
     type: 'function',
     function: {
+      name: 'get_accessories',
+      description:
+        'Consulta los accesorios REALES (tornillería, visores, espuma, forros, herrajes) que vende el taller con sus precios. Llama esta herramienta cuando el cliente pregunte por repuestos, visores, tornillos, almohadillas, espuma o accesorios específicos. Puedes filtrar por categoría opcional.',
+      parameters: {
+        type: 'object',
+        properties: {
+          category: {
+            type: 'string',
+            description:
+              'Filtro opcional: "tornillería", "visores", "espuma", "forros", "herrajes", "otros". Vacío = todos.',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'save_lead',
       description:
         'Guarda el lead en la base de datos de Tapicascos. Llamar SOLO cuando ya tengas: nombre, teléfono (WhatsApp), tipo de servicio y al menos una descripción básica de lo que quiere. Devuelve el quote_id para handoff posterior.',
@@ -134,6 +152,35 @@ export async function runTool(
     }))
 
     return JSON.stringify({ services, count: services.length })
+  }
+
+  if (name === 'get_accessories') {
+    const categoryHint = ((args.category as string) || '').toLowerCase()
+    const { data, error } = await supabase
+      .from('accessories')
+      .select('name, price, category')
+      .eq('active', true)
+      .order('category', { ascending: true })
+      .order('sort_order', { ascending: true })
+
+    if (error) return JSON.stringify({ error: error.message })
+
+    const filtered = (data ?? []).filter((a) => {
+      if (!categoryHint) return true
+      return (
+        a.category.toLowerCase().includes(categoryHint) ||
+        a.name.toLowerCase().includes(categoryHint)
+      )
+    })
+
+    const accessories = filtered.map((a) => ({
+      name: a.name,
+      category: a.category,
+      price_cop: a.price,
+      price: '$' + a.price.toLocaleString('es-CO'),
+    }))
+
+    return JSON.stringify({ accessories, count: accessories.length })
   }
 
   if (name === 'save_lead') {
