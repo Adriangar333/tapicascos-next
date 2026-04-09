@@ -155,16 +155,34 @@ export async function callOpenRouter({
       max_tokens: maxTokens,
     }
 
-    try {
-      const t0 = Date.now()
-      const res = await fetch(provider.endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(25_000),
-      })
-      const dt = Date.now() - t0
+    // Retry inline en 429/5xx con backoff lineal, antes de pasar al siguiente provider.
+    // Muchos fallos de Groq free tier son picos cortos que se resuelven en 1s.
+    let res: Response | null = null
+    let dt = 0
+    let attemptErr: Error | null = null
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const t0 = Date.now()
+        res = await fetch(provider.endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(25_000),
+        })
+        dt = Date.now() - t0
+        if (res.ok) break
+        if (res.status !== 429 && res.status < 500) break
+        const backoff = 600 * (attempt + 1)
+        console.warn(`[llm] ${provider.name} HTTP ${res.status}, retry en ${backoff}ms`)
+        await new Promise((r) => setTimeout(r, backoff))
+      } catch (e) {
+        attemptErr = e instanceof Error ? e : new Error(String(e))
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 600))
+      }
+    }
 
+    try {
+      if (!res) throw attemptErr ?? new Error(`[${provider.name}] no response`)
       if (!res.ok) {
         const text = await res.text().catch(() => '')
         lastErr = new Error(

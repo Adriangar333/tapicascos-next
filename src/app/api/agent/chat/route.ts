@@ -176,14 +176,17 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown'
-    console.error('[agent/chat] upstream error:', message)
+    const is429 = /429|rate.?limit|quota/i.test(message)
+    console.error('[agent/chat] upstream error:', message, { is429, iterations, providersAvailable })
     return NextResponse.json(
       {
-        reply:
-          'Tuve un problema técnico. Intenta de nuevo o escríbenos por WhatsApp directamente.',
-        error: 'upstream_error',
+        reply: is429
+          ? 'Estoy recibiendo muchísimos mensajes justo ahora 😅. Dame 30 segundos y vuelve a intentarlo, o continúa por WhatsApp para que te atendamos de una.'
+          : 'Tuve un problema técnico. Intenta de nuevo o escríbenos por WhatsApp directamente.',
+        error: is429 ? 'rate_limited_upstream' : 'upstream_error',
+        debug: { message, providersAvailable, iterations },
       },
-      { status: 200 }
+      { status: 200 },
     )
   }
 

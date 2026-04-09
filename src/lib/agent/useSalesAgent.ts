@@ -42,12 +42,17 @@ export function useSalesAgent() {
     return fresh
   })
 
-  // Warmup del Space de VibeVoice la primera vez que abren el chat.
-  // Así cuando activen la voz ya está tibio.
+  // Precarga de voces del navegador la primera vez que abren el chat.
+  // Algunos navegadores (Chrome en mobile) no listan voces hasta que
+  // disparas un speak() dummy con texto vacío.
   useEffect(() => {
     if (!open || warmedRef.current) return
     warmedRef.current = true
-    fetch('/api/agent/tts', { method: 'GET' }).catch(() => {})
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.getVoices()
+      } catch {}
+    }
   }, [open])
 
   const stopAudio = useCallback(() => {
@@ -61,35 +66,23 @@ export function useSalesAgent() {
   }, [])
 
   const speak = useCallback(
-    async (text: string) => {
+    (text: string) => {
       if (!ttsOn || !text.trim()) return
       stopAudio()
-      // Intento 1: VibeVoice via backend
-      try {
-        const res = await fetch('/api/agent/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text }),
-        })
-        const data = await res.json()
-        if (data.audio) {
-          const audio = new Audio(data.audio)
-          audioRef.current = audio
-          audio.play().catch(() => {})
-          return
-        }
-        if (data.reason) {
-          console.info('[tapi] tts fallback →', data.reason, data.space ?? '')
-        }
-      } catch {}
-      // Fallback: speechSynthesis del navegador
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        const cleaned = text.replace(/\*\*/g, '').replace(/[🪖💬📎🔧✅😕🙂🎨]/gu, '')
-        const utter = new SpeechSynthesisUtterance(cleaned)
-        utter.lang = 'es-CO'
-        utter.rate = 1.05
-        window.speechSynthesis.speak(utter)
-      }
+      if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+      const cleaned = text.replace(/\*\*/g, '').replace(/[🪖💬📎🔧✅😕🙂🎨]/gu, '')
+      const utter = new SpeechSynthesisUtterance(cleaned)
+      // Prefiere una voz española si el dispositivo la tiene
+      const voices = window.speechSynthesis.getVoices()
+      const esVoice =
+        voices.find((v) => /es[-_]CO/i.test(v.lang)) ??
+        voices.find((v) => /es[-_]MX/i.test(v.lang)) ??
+        voices.find((v) => /^es/i.test(v.lang))
+      if (esVoice) utter.voice = esVoice
+      utter.lang = esVoice?.lang ?? 'es-CO'
+      utter.rate = 1.05
+      utter.pitch = 1
+      window.speechSynthesis.speak(utter)
     },
     [ttsOn, stopAudio],
   )
