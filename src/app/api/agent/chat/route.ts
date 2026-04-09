@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import { SYSTEM_PROMPT } from '@/lib/agent/prompts'
 import { TOOLS, runTool } from '@/lib/agent/tools'
 import { checkRateLimit } from '@/lib/agent/rateLimit'
 import { createClient } from '@/lib/supabase/server'
+import { callOpenRouter, type OpenAIMessage } from '@/lib/agent/llm'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const MODEL = 'claude-haiku-4-5-20251001'
 const MAX_ITERATIONS = 6
 
 type ClientMessage = {
@@ -25,8 +24,7 @@ function getClientIp(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
+  if (!process.env.OPENROUTER_API_KEY) {
     return NextResponse.json(
       {
         reply:
@@ -37,7 +35,6 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Rate limit
   const ip = getClientIp(req)
   const rl = checkRateLimit(ip)
   if (!rl.allowed) {
@@ -63,86 +60,75 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing session_id or messages' }, { status: 400 })
   }
 
-  // Cap historial para proteger contexto/costo
   const history = messages.slice(-30)
 
-  const anthropic = new Anthropic({ apiKey })
-
-  // Construimos el historial en formato Anthropic
-  const conversation: Anthropic.MessageParam[] = history.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }))
+  // Historial en formato OpenAI
+  const conversation: OpenAIMessage[] = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...history.map((m) => ({ role: m.role, content: m.content }) as OpenAIMessage),
+  ]
 
   let savedQuoteId: string | null = null
   let assistantText = ''
   let iterations = 0
+  let modelUsed = ''
 
   try {
     while (iterations < MAX_ITERATIONS) {
       iterations++
 
-      const response = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: 1024,
-        temperature: 0.4,
-        system: SYSTEM_PROMPT,
-        tools: TOOLS,
+      const { response, modelUsed: used } = await callOpenRouter({
         messages: conversation,
+        tools: TOOLS,
+        temperature: 0.4,
+        maxTokens: 1024,
       })
+      modelUsed = used
 
-      // Recolectar texto y posibles tool_use
-      const toolUses: Array<{ id: string; name: string; input: Record<string, unknown> }> = []
-      let turnText = ''
+      const choice = response.choices[0]
+      const msg = choice.message
+      const toolCalls = msg.tool_calls ?? []
 
-      for (const block of response.content) {
-        if (block.type === 'text') {
-          turnText += block.text
-        } else if (block.type === 'tool_use') {
-          toolUses.push({
-            id: block.id,
-            name: block.name,
-            input: block.input as Record<string, unknown>,
-          })
-        }
-      }
-
-      if (turnText) assistantText = turnText
-
-      // Sin tools → fin del loop
-      if (response.stop_reason !== 'tool_use' || toolUses.length === 0) {
-        // Persistir assistant turn al historial conversacional (por consistencia)
-        conversation.push({ role: 'assistant', content: response.content })
+      if (!toolCalls.length) {
+        assistantText = msg.content ?? ''
+        conversation.push({ role: 'assistant', content: assistantText })
         break
       }
 
-      // Persistir el turn assistant con los tool_use
-      conversation.push({ role: 'assistant', content: response.content })
+      // Asistente con tool_calls: lo persistimos tal cual
+      conversation.push({
+        role: 'assistant',
+        content: msg.content ?? null,
+        tool_calls: toolCalls,
+      })
 
-      // Ejecutar tools y alimentar resultados
-      const toolResults: Anthropic.ToolResultBlockParam[] = []
-      for (const tu of toolUses) {
-        const result = await runTool(tu.name, tu.input)
-        toolResults.push({
-          type: 'tool_result',
-          tool_use_id: tu.id,
+      // Ejecutar cada tool y responder con role:'tool'
+      for (const tc of toolCalls) {
+        let input: Record<string, unknown> = {}
+        try {
+          input = JSON.parse(tc.function.arguments || '{}')
+        } catch {
+          // ignora args mal formados
+        }
+        const result = await runTool(tc.function.name, input)
+
+        conversation.push({
+          role: 'tool',
+          tool_call_id: tc.id,
           content: result,
         })
 
-        // Capturar quote_id si save_lead tuvo éxito
-        if (tu.name === 'save_lead') {
+        if (tc.function.name === 'save_lead') {
           try {
             const parsed = JSON.parse(result)
             if (parsed.quote_id) savedQuoteId = parsed.quote_id
           } catch {}
         }
       }
-
-      conversation.push({ role: 'user', content: toolResults })
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown'
-    console.error('[agent/chat] Anthropic error:', message)
+    console.error('[agent/chat] upstream error:', message)
     return NextResponse.json(
       {
         reply:
@@ -191,5 +177,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     reply: assistantText || 'Perdón, se me fue la respuesta. ¿Puedes repetirme?',
     quote_id: savedQuoteId,
+    model: modelUsed,
   })
 }

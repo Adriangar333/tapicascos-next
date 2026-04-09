@@ -1,67 +1,84 @@
-import type Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 
-// ---------- Tool definitions (lo que el modelo ve) ----------
+// ---------- Tool definitions (formato OpenAI / OpenRouter) ----------
 
-export const TOOLS: Anthropic.Tool[] = [
+export type OpenAITool = {
+  type: 'function'
+  function: {
+    name: string
+    description: string
+    parameters: Record<string, unknown>
+  }
+}
+
+export const TOOLS: OpenAITool[] = [
   {
-    name: 'get_services',
-    description:
-      'Consulta los servicios y precios REALES de Tapicascos en la base de datos. Llama esta herramienta SIEMPRE antes de mencionar cualquier precio al cliente. Puedes filtrar por categoría opcional: "tapizado", "pintura", "silla", o dejarla vacía para traer todos.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        category: {
-          type: 'string',
-          description: 'Filtro opcional: "tapizado", "pintura", "silla". Vacío = todos.',
+    type: 'function',
+    function: {
+      name: 'get_services',
+      description:
+        'Consulta los servicios y precios REALES de Tapicascos en la base de datos. Llama esta herramienta SIEMPRE antes de mencionar cualquier precio al cliente. Puedes filtrar por categoría opcional: "tapizado", "pintura", "silla", o dejarla vacía para traer todos.',
+      parameters: {
+        type: 'object',
+        properties: {
+          category: {
+            type: 'string',
+            description: 'Filtro opcional: "tapizado", "pintura", "silla". Vacío = todos.',
+          },
         },
       },
     },
   },
   {
-    name: 'save_lead',
-    description:
-      'Guarda el lead en la base de datos de Tapicascos. Llamar SOLO cuando ya tengas: nombre, teléfono (WhatsApp), tipo de servicio y al menos una descripción básica de lo que quiere. Devuelve el quote_id para handoff posterior.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Nombre completo del cliente' },
-        phone: {
-          type: 'string',
-          description: 'Número WhatsApp, solo dígitos o con espacios (se normaliza)',
+    type: 'function',
+    function: {
+      name: 'save_lead',
+      description:
+        'Guarda el lead en la base de datos de Tapicascos. Llamar SOLO cuando ya tengas: nombre, teléfono (WhatsApp), tipo de servicio y al menos una descripción básica de lo que quiere. Devuelve el quote_id para handoff posterior.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Nombre completo del cliente' },
+          phone: {
+            type: 'string',
+            description: 'Número WhatsApp, solo dígitos o con espacios (se normaliza)',
+          },
+          service_type: {
+            type: 'string',
+            enum: [
+              'tapizado_integral',
+              'tapizado_parcial',
+              'pintura_personalizada',
+              'ajuste_talla',
+              'silla_moto',
+              'accesorios',
+              'otro',
+            ],
+          },
+          helmet_brand: { type: 'string', description: 'Marca del casco (opcional)' },
+          helmet_model: { type: 'string', description: 'Modelo del casco (opcional)' },
+          description: {
+            type: 'string',
+            description: 'Resumen de lo que quiere el cliente en 1-2 oraciones',
+          },
         },
-        service_type: {
-          type: 'string',
-          enum: [
-            'tapizado_integral',
-            'tapizado_parcial',
-            'pintura_personalizada',
-            'ajuste_talla',
-            'silla_moto',
-            'accesorios',
-            'otro',
-          ],
-        },
-        helmet_brand: { type: 'string', description: 'Marca del casco (opcional)' },
-        helmet_model: { type: 'string', description: 'Modelo del casco (opcional)' },
-        description: {
-          type: 'string',
-          description: 'Resumen de lo que quiere el cliente en 1-2 oraciones',
-        },
+        required: ['name', 'phone', 'service_type', 'description'],
       },
-      required: ['name', 'phone', 'service_type', 'description'],
     },
   },
   {
-    name: 'get_whatsapp_link',
-    description:
-      'Genera el link de WhatsApp con un resumen prellenado del lead ya guardado. Llamar al final del flujo, justo después de save_lead, para que el cliente pueda continuar por WhatsApp con contexto.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        quote_id: { type: 'string', description: 'ID devuelto por save_lead' },
+    type: 'function',
+    function: {
+      name: 'get_whatsapp_link',
+      description:
+        'Genera el link de WhatsApp con un resumen prellenado del lead ya guardado. Llamar al final del flujo, justo después de save_lead, para que el cliente pueda continuar por WhatsApp con contexto.',
+      parameters: {
+        type: 'object',
+        properties: {
+          quote_id: { type: 'string', description: 'ID devuelto por save_lead' },
+        },
+        required: ['quote_id'],
       },
-      required: ['quote_id'],
     },
   },
 ]
@@ -75,10 +92,7 @@ function formatPrice(min: number, max: number | null): string {
 }
 
 function sanitizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '')
-  // Si ya viene con 57 al inicio y 12 dígitos → ok, dejar así
-  // Si son 10 dígitos colombianos, lo dejamos así (el wa.me se encarga del 57)
-  return digits
+  return raw.replace(/\D/g, '')
 }
 
 function isValidPhone(phone: string): boolean {
@@ -94,13 +108,12 @@ export async function runTool(
 
   if (name === 'get_services') {
     const categoryHint = ((input.category as string) || '').toLowerCase()
-    let query = supabase
+    const { data, error } = await supabase
       .from('services')
       .select('name, slug, description, price_min, price_max, category:categories(slug, name)')
       .eq('active', true)
       .order('sort_order', { ascending: true })
 
-    const { data, error } = await query
     if (error) return JSON.stringify({ error: error.message })
 
     const filtered = (data ?? []).filter((s) => {

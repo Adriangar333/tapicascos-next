@@ -41,6 +41,8 @@ export default function SalesAgent() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [quoteId, setQuoteId] = useState<string | null>(null)
+  const [ttsOn, setTtsOn] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
   const [sessionId] = useState<string>(() => {
     if (typeof window === 'undefined') return uuid()
     const k = 'tapi_session_id'
@@ -59,6 +61,44 @@ export default function SalesAgent() {
     }
   }, [msgs, open, busy])
 
+  function stopAudio() {
+    try {
+      audioRef.current?.pause()
+      audioRef.current = null
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+    } catch {}
+  }
+
+  async function speak(text: string) {
+    if (!ttsOn || !text.trim()) return
+    stopAudio()
+    // Intento 1: VibeVoice via backend
+    try {
+      const res = await fetch('/api/agent/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      })
+      const data = await res.json()
+      if (data.audio) {
+        const audio = new Audio(data.audio)
+        audioRef.current = audio
+        audio.play().catch(() => {})
+        return
+      }
+    } catch {}
+    // Fallback: speechSynthesis del navegador
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const cleaned = text.replace(/\*\*/g, '').replace(/[🪖💬📎🔧✅😕🙂🎨]/gu, '')
+      const utter = new SpeechSynthesisUtterance(cleaned)
+      utter.lang = 'es-CO'
+      utter.rate = 1.05
+      window.speechSynthesis.speak(utter)
+    }
+  }
+
   async function sendText(text: string) {
     if (!text.trim() || busy) return
     const nextMsgs: Msg[] = [...msgs, { role: 'user', content: text }]
@@ -76,8 +116,10 @@ export default function SalesAgent() {
         }),
       })
       const data = await res.json()
-      setMsgs((prev) => [...prev, { role: 'assistant', content: data.reply ?? '...' }])
+      const replyText = data.reply ?? '...'
+      setMsgs((prev) => [...prev, { role: 'assistant', content: replyText }])
       if (data.quote_id) setQuoteId(data.quote_id)
+      speak(replyText)
     } catch {
       setMsgs((prev) => [
         ...prev,
@@ -184,6 +226,23 @@ export default function SalesAgent() {
               <p className="font-bold text-sm text-white">Tapi · Asesor virtual</p>
               <p className="text-[11px] text-green-400">En línea · responde al instante</p>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                const next = !ttsOn
+                setTtsOn(next)
+                if (!next) stopAudio()
+              }}
+              aria-label={ttsOn ? 'Silenciar voz' : 'Activar voz'}
+              title={ttsOn ? 'Silenciar voz' : 'Activar voz'}
+              className={`h-9 w-9 rounded-full flex items-center justify-center text-base transition-colors ${
+                ttsOn
+                  ? 'bg-[#FF6B35]/30 text-white'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10'
+              }`}
+            >
+              {ttsOn ? '🔊' : '🔇'}
+            </button>
           </div>
 
           {/* Messages */}
