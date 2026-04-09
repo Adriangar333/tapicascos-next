@@ -1,15 +1,26 @@
 /**
- * OpenRouter client con cadena de fallback entre modelos gratuitos.
- * API OpenAI-compatible: POST https://openrouter.ai/api/v1/chat/completions
+ * Cliente Vercel AI Gateway (OpenAI-compatible).
  *
- * Si un modelo devuelve error (429, 5xx, timeout, campo `error` en body),
- * pasa automáticamente al siguiente de la cadena.
+ * Ventajas vs OpenRouter:
+ *  - Billing unificado con Vercel (Groq + xAI ya conectados via integration)
+ *  - Zero-config en producción: usa VERCEL_OIDC_TOKEN automáticamente
+ *  - Fallback nativo entre modelos via providerOptions.gateway.models
+ *  - Misma API OpenAI-compatible → tool_calls funcionan igual
+ *
+ * Auth priority:
+ *   1. AI_GATEWAY_API_KEY   (local dev, override manual)
+ *   2. VERCEL_OIDC_TOKEN    (auto-inyectado en deploys de Vercel)
  */
 
-export const FREE_MODELS = [
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'google/gemini-2.0-flash-exp:free',
-  'qwen/qwen-2.5-72b-instruct:free',
+// Modelo primario + cadena de fallback (todos con tool use)
+// Orden: Groq Llama 3.3 70B (rápido + tool use sólido)
+//        → xAI Grok 4.1 fast (buen respaldo)
+//        → Groq Llama 3.1 8B instant (último recurso, muy rápido)
+export const PRIMARY_MODEL = 'groq/llama-3.3-70b-versatile'
+export const FALLBACK_MODELS = [
+  'groq/llama-3.3-70b-versatile',
+  'xai/grok-4.1-fast-non-reasoning',
+  'groq/llama-3.1-8b-instant',
 ] as const
 
 export type OpenAIMessage =
@@ -51,7 +62,15 @@ type CallArgs = {
   maxTokens?: number
 }
 
-const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
+const ENDPOINT = 'https://ai-gateway.vercel.sh/v1/chat/completions'
+
+function getAuthToken(): string | null {
+  return process.env.AI_GATEWAY_API_KEY ?? process.env.VERCEL_OIDC_TOKEN ?? null
+}
+
+export function isGatewayConfigured(): boolean {
+  return getAuthToken() !== null
+}
 
 export async function callOpenRouter({
   messages,
@@ -59,60 +78,59 @@ export async function callOpenRouter({
   temperature = 0.4,
   maxTokens = 1024,
 }: CallArgs): Promise<{ response: ChatCompletionResponse; modelUsed: string }> {
-  const apiKey = process.env.OPENROUTER_API_KEY
-  if (!apiKey) throw new Error('OPENROUTER_API_KEY no configurada')
+  const token = getAuthToken()
+  if (!token) {
+    throw new Error(
+      'AI Gateway no configurado. Define AI_GATEWAY_API_KEY en local o deploy en Vercel para OIDC automático.'
+    )
+  }
 
   const headers = {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-    'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tapicascos.vercel.app',
-    'X-Title': 'Tapicascos Barranquilla',
+    Authorization: `Bearer ${token}`,
   }
 
-  let lastErr: unknown = null
+  // Gateway soporta fallback nativo: el primer modelo es el primario,
+  // el resto en providerOptions.gateway.models como respaldo.
+  const body = {
+    model: PRIMARY_MODEL,
+    messages,
+    tools,
+    tool_choice: 'auto' as const,
+    temperature,
+    max_tokens: maxTokens,
+    providerOptions: {
+      gateway: {
+        models: FALLBACK_MODELS,
+      },
+    },
+  }
 
-  for (const model of FREE_MODELS) {
-    try {
-      const res = await fetch(ENDPOINT, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model,
-          messages,
-          tools,
-          tool_choice: 'auto',
-          temperature,
-          max_tokens: maxTokens,
-        }),
-        // 25s timeout (Vercel serverless límite: ~60s)
-        signal: AbortSignal.timeout(25_000),
-      })
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(25_000),
+    })
 
-      if (!res.ok) {
-        lastErr = new Error(`[${model}] HTTP ${res.status}: ${await res.text().catch(() => '')}`)
-        console.warn('[llm] fallback →', lastErr)
-        continue
-      }
-
-      const json = (await res.json()) as ChatCompletionResponse
-
-      if (json.error || !json.choices?.length) {
-        lastErr = new Error(`[${model}] upstream error: ${json.error?.message ?? 'no choices'}`)
-        console.warn('[llm] fallback →', lastErr)
-        continue
-      }
-
-      return { response: json, modelUsed: model }
-    } catch (err) {
-      lastErr = err
-      console.warn('[llm] fallback →', model, err instanceof Error ? err.message : err)
-      continue
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`[ai-gateway] HTTP ${res.status}: ${text.slice(0, 300)}`)
     }
-  }
 
-  throw new Error(
-    `Todos los modelos gratuitos fallaron. Último error: ${
-      lastErr instanceof Error ? lastErr.message : String(lastErr)
-    }`
-  )
+    const json = (await res.json()) as ChatCompletionResponse
+
+    if (json.error || !json.choices?.length) {
+      throw new Error(`[ai-gateway] upstream error: ${json.error?.message ?? 'no choices'}`)
+    }
+
+    return { response: json, modelUsed: json.model ?? PRIMARY_MODEL }
+  } catch (err) {
+    console.error(
+      '[llm] gateway failed:',
+      err instanceof Error ? err.message : String(err)
+    )
+    throw err
+  }
 }

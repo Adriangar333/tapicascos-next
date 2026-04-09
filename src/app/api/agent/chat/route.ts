@@ -3,7 +3,7 @@ import { SYSTEM_PROMPT } from '@/lib/agent/prompts'
 import { TOOLS, runTool } from '@/lib/agent/tools'
 import { checkRateLimit } from '@/lib/agent/rateLimit'
 import { createClient } from '@/lib/supabase/server'
-import { callOpenRouter, type OpenAIMessage } from '@/lib/agent/llm'
+import { callOpenRouter, isGatewayConfigured, type OpenAIMessage } from '@/lib/agent/llm'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,12 +24,12 @@ function getClientIp(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest) {
-  if (!process.env.OPENROUTER_API_KEY) {
+  if (!isGatewayConfigured()) {
     return NextResponse.json(
       {
         reply:
           'El asesor virtual está temporalmente fuera de servicio 🔧. Escríbenos directo por WhatsApp y con mucho gusto te atendemos.',
-        error: 'missing_api_key',
+        error: 'gateway_not_configured',
       },
       { status: 200 }
     )
