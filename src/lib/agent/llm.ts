@@ -87,7 +87,7 @@ const PROVIDERS: Provider[] = [
   {
     name: 'openrouter-deepseek',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'deepseek/deepseek-chat-v3.1:free',
+    model: 'deepseek/deepseek-chat:free',
     getToken: () => process.env.OPENROUTER_API_KEY,
     extraHeaders: {
       'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tapicascos.vercel.app',
