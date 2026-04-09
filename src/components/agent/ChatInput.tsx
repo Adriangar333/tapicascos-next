@@ -26,6 +26,21 @@ export default function ChatInput({ busy, onSend, onUpload }: Props) {
     onUpload(file)
   }
 
+  function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (file) {
+          e.preventDefault()
+          onUpload(file)
+          return
+        }
+      }
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2 p-3 border-t border-white/10">
       <button
@@ -48,7 +63,8 @@ export default function ChatInput({ busy, onSend, onUpload }: Props) {
       <input
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        placeholder="Escribe tu mensaje..."
+        onPaste={handlePaste}
+        placeholder="Escribe tu mensaje o pega una foto..."
         disabled={busy}
         className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#FF6B35]/60 disabled:opacity-40"
       />

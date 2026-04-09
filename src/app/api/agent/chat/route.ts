@@ -5,6 +5,7 @@ import { checkRateLimit } from '@/lib/agent/rateLimit'
 import { createClient } from '@/lib/supabase/server'
 import {
   callOpenRouter,
+  describeHelmetImage,
   getAvailableProviders,
   isLlmConfigured,
   type OpenAIMessage,
@@ -65,14 +66,14 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  let body: { messages: ClientMessage[]; session_id: string }
+  let body: { messages: ClientMessage[]; session_id: string; latest_photo_url?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { messages = [], session_id } = body
+  const { messages = [], session_id, latest_photo_url } = body
   if (!session_id || !Array.isArray(messages)) {
     return NextResponse.json({ error: 'Missing session_id or messages' }, { status: 400 })
   }
@@ -84,6 +85,29 @@ export async function POST(req: NextRequest) {
     { role: 'system', content: SYSTEM_PROMPT },
     ...history.map((m) => ({ role: m.role, content: m.content }) as OpenAIMessage),
   ]
+
+  // Visión: si el usuario acaba de adjuntar foto, describirla con un modelo
+  // multimodal ANTES del loop e inyectar el resultado como nota del sistema
+  // para que Tapi no alucine detalles.
+  if (latest_photo_url && /^https?:\/\//.test(latest_photo_url)) {
+    try {
+      const desc = await describeHelmetImage(latest_photo_url)
+      if (desc) {
+        conversation.push({
+          role: 'system',
+          content: `[info visual de la foto que el cliente acaba de enviar]: ${desc}`,
+        })
+      } else {
+        conversation.push({
+          role: 'system',
+          content:
+            '[info visual de la foto]: no disponible. No describas la foto, solo confirma que la recibiste y pide al cliente que te cuente qué parte quiere intervenir.',
+        })
+      }
+    } catch (visionErr) {
+      console.warn('[agent/chat] vision error:', visionErr)
+    }
+  }
 
   let savedQuoteId: string | null = null
   let assistantText = ''

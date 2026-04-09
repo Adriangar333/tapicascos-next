@@ -100,6 +100,83 @@ const PROVIDERS: Provider[] = [
   },
 ]
 
+/**
+ * Vision: describe una imagen por URL en español usando un modelo multimodal.
+ * Intenta Groq llama-4-scout (gratis, soporta image_url) y cae a OpenRouter gemini flash free.
+ * Devuelve null si ningún proveedor responde — el caller debe tolerarlo.
+ */
+export async function describeHelmetImage(imageUrl: string): Promise<string | null> {
+  const visionProviders: Array<{
+    name: string
+    endpoint: string
+    model: string
+    token?: string
+    extraHeaders?: Record<string, string>
+  }> = [
+    {
+      name: 'groq-vision',
+      endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      token: process.env.GROQ_API_KEY,
+    },
+    {
+      name: 'openrouter-vision',
+      endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+      model: 'google/gemini-2.0-flash-exp:free',
+      token: process.env.OPENROUTER_API_KEY,
+      extraHeaders: {
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tapicascos.vercel.app',
+        'X-Title': 'Tapicascos Barranquilla',
+      },
+    },
+  ]
+
+  const prompt =
+    'Mira esta foto de un casco de moto y descríbela en 1-2 oraciones en español, centrándote SOLO en lo que se ve: tipo de casco (integral/abierto/modular), color principal, estado visible del interior si se aprecia (limpio, desgastado, roto), y cualquier daño externo evidente (rayones, golpes, pintura dañada). No inventes detalles. No uses viñetas. No digas "en la imagen" ni "la foto". Si no puedes ver bien el casco, di exactamente: "casco de moto, no se aprecia suficiente detalle".'
+
+  for (const p of visionProviders) {
+    if (!p.token) continue
+    try {
+      const res = await fetch(p.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${p.token}`,
+          ...(p.extraHeaders ?? {}),
+        },
+        body: JSON.stringify({
+          model: p.model,
+          temperature: 0.2,
+          max_tokens: 160,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: prompt },
+                { type: 'image_url', image_url: { url: imageUrl } },
+              ],
+            },
+          ],
+        }),
+        signal: AbortSignal.timeout(20_000),
+      })
+      if (!res.ok) {
+        console.warn(`[vision] ${p.name} HTTP ${res.status}`)
+        continue
+      }
+      const json = (await res.json()) as ChatCompletionResponse
+      const txt = json.choices?.[0]?.message?.content?.toString().trim()
+      if (txt) {
+        console.log(`[vision] ✓ ${p.name}`)
+        return txt
+      }
+    } catch (err) {
+      console.warn(`[vision] ${p.name} error:`, err instanceof Error ? err.message : err)
+    }
+  }
+  return null
+}
+
 export function getAvailableProviders(): string[] {
   return PROVIDERS.filter((p) => !!p.getToken()).map((p) => `${p.name}:${p.model}`)
 }

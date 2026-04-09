@@ -88,9 +88,12 @@ export function useSalesAgent() {
   )
 
   const sendText = useCallback(
-    async (text: string) => {
+    async (text: string, photoUrl?: string) => {
       if (!text.trim() || busy) return
-      const nextMsgs: AgentMsg[] = [...msgs, { role: 'user', content: text }]
+      const nextMsgs: AgentMsg[] = [
+        ...msgs,
+        { role: 'user', content: text, ...(photoUrl ? { photoUrl } : {}) },
+      ]
       setMsgs(nextMsgs)
       setBusy(true)
 
@@ -101,6 +104,7 @@ export function useSalesAgent() {
           body: JSON.stringify({
             session_id: sessionId,
             messages: nextMsgs.map((m) => ({ role: m.role, content: m.content })),
+            latest_photo_url: photoUrl ?? null,
           }),
         })
         const data = await res.json()
@@ -126,9 +130,7 @@ export function useSalesAgent() {
 
   const uploadPhoto = useCallback(
     async (file: File) => {
-      setMsgs((prev) => [...prev, { role: 'user', content: '📎 Envié una foto del casco' }])
       setBusy(true)
-
       try {
         const fd = new FormData()
         fd.append('file', file)
@@ -136,31 +138,26 @@ export function useSalesAgent() {
         const res = await fetch('/api/agent/upload', { method: 'POST', body: fd })
         const data = await res.json()
 
-        if (data.error) {
+        if (data.error || !data.url) {
           setMsgs((prev) => [
             ...prev,
-            { role: 'assistant', content: `No pude subir esa imagen: ${data.error}` },
+            {
+              role: 'assistant',
+              content: `No pude subir esa imagen${data.error ? `: ${data.error}` : ''}. Intenta con otra.`,
+            },
           ])
+          setBusy(false)
           return
         }
 
-        setMsgs((prev) => {
-          const copy = [...prev]
-          const lastUserIdx = copy.length - 1
-          if (copy[lastUserIdx]?.role === 'user') {
-            copy[lastUserIdx] = { ...copy[lastUserIdx], photoUrl: data.url }
-          }
-          return copy
-        })
-        await sendText(
-          'Acabo de enviar una foto del casco. Cuando la veas, ayúdame a entender qué servicio aplica.',
-        )
+        // setBusy se libera dentro de sendText
+        setBusy(false)
+        await sendText('📎 Te acabo de enviar una foto del casco.', data.url as string)
       } catch {
         setMsgs((prev) => [
           ...prev,
           { role: 'assistant', content: 'No pude subir esa imagen. Intenta con otra.' },
         ])
-      } finally {
         setBusy(false)
       }
     },
