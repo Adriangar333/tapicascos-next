@@ -1,27 +1,14 @@
 /**
- * Cliente Vercel AI Gateway (OpenAI-compatible).
+ * Cliente LLM multi-proveedor con fallback nativo.
  *
- * Ventajas vs OpenRouter:
- *  - Billing unificado con Vercel (Groq + xAI ya conectados via integration)
- *  - Zero-config en producción: usa VERCEL_OIDC_TOKEN automáticamente
- *  - Fallback nativo entre modelos via providerOptions.gateway.models
- *  - Misma API OpenAI-compatible → tool_calls funcionan igual
+ * Aprovecha las INTEGRACIONES de Vercel que ya están instaladas en el proyecto:
+ *  - Groq Marketplace integration → inyecta GROQ_API_KEY automáticamente
+ *  - xAI Marketplace integration   → inyecta XAI_API_KEY automáticamente
+ *  - AI Gateway (opcional)         → AI_GATEWAY_API_KEY o VERCEL_OIDC_TOKEN
  *
- * Auth priority:
- *   1. AI_GATEWAY_API_KEY   (local dev, override manual)
- *   2. VERCEL_OIDC_TOKEN    (auto-inyectado en deploys de Vercel)
+ * Todos los proveedores exponen una API OpenAI-compatible, así que el tool loop
+ * funciona idéntico. Si el primero falla (429/5xx/timeout), salta al siguiente.
  */
-
-// Modelo primario + cadena de fallback (todos con tool use)
-// Orden: Groq Llama 3.3 70B (rápido + tool use sólido)
-//        → xAI Grok 4.1 fast (buen respaldo)
-//        → Groq Llama 3.1 8B instant (último recurso, muy rápido)
-export const PRIMARY_MODEL = 'groq/llama-3.3-70b-versatile'
-export const FALLBACK_MODELS = [
-  'groq/llama-3.3-70b-versatile',
-  'xai/grok-4.1-fast-non-reasoning',
-  'groq/llama-3.1-8b-instant',
-] as const
 
 export type OpenAIMessage =
   | { role: 'system'; content: string }
@@ -55,21 +42,58 @@ export type ChatCompletionResponse = {
   error?: { message: string; code?: number }
 }
 
+type Provider = {
+  name: string
+  endpoint: string
+  model: string
+  getToken: () => string | undefined
+  extraHeaders?: Record<string, string>
+}
+
+// Orden de intentos (primero el mejor para tool use + más rápido)
+const PROVIDERS: Provider[] = [
+  {
+    name: 'groq',
+    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+    model: 'llama-3.3-70b-versatile',
+    getToken: () => process.env.GROQ_API_KEY,
+  },
+  {
+    name: 'groq-fallback',
+    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+    model: 'llama-3.1-8b-instant',
+    getToken: () => process.env.GROQ_API_KEY,
+  },
+  {
+    name: 'xai',
+    endpoint: 'https://api.x.ai/v1/chat/completions',
+    model: 'grok-2-1212',
+    getToken: () => process.env.XAI_API_KEY,
+  },
+  {
+    name: 'vercel-gateway',
+    endpoint: 'https://ai-gateway.vercel.sh/v1/chat/completions',
+    model: 'groq/llama-3.3-70b-versatile',
+    getToken: () => process.env.AI_GATEWAY_API_KEY ?? process.env.VERCEL_OIDC_TOKEN,
+  },
+]
+
+export function getAvailableProviders(): string[] {
+  return PROVIDERS.filter((p) => !!p.getToken()).map((p) => `${p.name}:${p.model}`)
+}
+
+export function isLlmConfigured(): boolean {
+  return PROVIDERS.some((p) => !!p.getToken())
+}
+
+// Alias legacy para no romper imports existentes
+export const isGatewayConfigured = isLlmConfigured
+
 type CallArgs = {
   messages: OpenAIMessage[]
   tools: unknown[]
   temperature?: number
   maxTokens?: number
-}
-
-const ENDPOINT = 'https://ai-gateway.vercel.sh/v1/chat/completions'
-
-function getAuthToken(): string | null {
-  return process.env.AI_GATEWAY_API_KEY ?? process.env.VERCEL_OIDC_TOKEN ?? null
-}
-
-export function isGatewayConfigured(): boolean {
-  return getAuthToken() !== null
 }
 
 export async function callOpenRouter({
@@ -78,59 +102,81 @@ export async function callOpenRouter({
   temperature = 0.4,
   maxTokens = 1024,
 }: CallArgs): Promise<{ response: ChatCompletionResponse; modelUsed: string }> {
-  const token = getAuthToken()
-  if (!token) {
+  const available = PROVIDERS.filter((p) => !!p.getToken())
+  console.log(
+    '[llm] providers available:',
+    available.map((p) => p.name).join(', ') || 'NONE'
+  )
+
+  if (available.length === 0) {
     throw new Error(
-      'AI Gateway no configurado. Define AI_GATEWAY_API_KEY en local o deploy en Vercel para OIDC automático.'
+      'Ningún proveedor LLM configurado. Falta GROQ_API_KEY, XAI_API_KEY o AI_GATEWAY_API_KEY.'
     )
   }
 
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  }
+  let lastErr: unknown = null
 
-  // Gateway soporta fallback nativo: el primer modelo es el primario,
-  // el resto en providerOptions.gateway.models como respaldo.
-  const body = {
-    model: PRIMARY_MODEL,
-    messages,
-    tools,
-    tool_choice: 'auto' as const,
-    temperature,
-    max_tokens: maxTokens,
-    providerOptions: {
-      gateway: {
-        models: FALLBACK_MODELS,
-      },
-    },
-  }
-
-  try {
-    const res = await fetch(ENDPOINT, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(25_000),
-    })
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`[ai-gateway] HTTP ${res.status}: ${text.slice(0, 300)}`)
+  for (const provider of available) {
+    const token = provider.getToken()!
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(provider.extraHeaders ?? {}),
     }
 
-    const json = (await res.json()) as ChatCompletionResponse
-
-    if (json.error || !json.choices?.length) {
-      throw new Error(`[ai-gateway] upstream error: ${json.error?.message ?? 'no choices'}`)
+    const body: Record<string, unknown> = {
+      model: provider.model,
+      messages,
+      tools,
+      tool_choice: 'auto',
+      temperature,
+      max_tokens: maxTokens,
     }
 
-    return { response: json, modelUsed: json.model ?? PRIMARY_MODEL }
-  } catch (err) {
-    console.error(
-      '[llm] gateway failed:',
-      err instanceof Error ? err.message : String(err)
-    )
-    throw err
+    try {
+      const t0 = Date.now()
+      const res = await fetch(provider.endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(25_000),
+      })
+      const dt = Date.now() - t0
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        lastErr = new Error(
+          `[${provider.name}] HTTP ${res.status} (${dt}ms): ${text.slice(0, 200)}`
+        )
+        console.warn('[llm] fallback →', String(lastErr))
+        continue
+      }
+
+      const json = (await res.json()) as ChatCompletionResponse
+      if (json.error || !json.choices?.length) {
+        lastErr = new Error(
+          `[${provider.name}] upstream error: ${json.error?.message ?? 'no choices'}`
+        )
+        console.warn('[llm] fallback →', String(lastErr))
+        continue
+      }
+
+      console.log(`[llm] ✓ ${provider.name} ${provider.model} (${dt}ms)`)
+      return { response: json, modelUsed: `${provider.name}/${provider.model}` }
+    } catch (err) {
+      lastErr = err
+      console.warn(
+        '[llm] fallback →',
+        provider.name,
+        err instanceof Error ? err.message : String(err)
+      )
+      continue
+    }
   }
+
+  throw new Error(
+    `Todos los proveedores fallaron. Último error: ${
+      lastErr instanceof Error ? lastErr.message : String(lastErr)
+    }`
+  )
 }

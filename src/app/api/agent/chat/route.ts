@@ -3,7 +3,12 @@ import { SYSTEM_PROMPT } from '@/lib/agent/prompts'
 import { TOOLS, runTool } from '@/lib/agent/tools'
 import { checkRateLimit } from '@/lib/agent/rateLimit'
 import { createClient } from '@/lib/supabase/server'
-import { callOpenRouter, isGatewayConfigured, type OpenAIMessage } from '@/lib/agent/llm'
+import {
+  callOpenRouter,
+  getAvailableProviders,
+  isLlmConfigured,
+  type OpenAIMessage,
+} from '@/lib/agent/llm'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,12 +29,22 @@ function getClientIp(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isGatewayConfigured()) {
+  const providersAvailable = getAvailableProviders()
+  console.log('[agent/chat] providers available:', providersAvailable.join(', ') || 'NONE')
+  console.log('[agent/chat] env check:', {
+    GROQ_API_KEY: !!process.env.GROQ_API_KEY,
+    XAI_API_KEY: !!process.env.XAI_API_KEY,
+    AI_GATEWAY_API_KEY: !!process.env.AI_GATEWAY_API_KEY,
+    VERCEL_OIDC_TOKEN: !!process.env.VERCEL_OIDC_TOKEN,
+  })
+
+  if (!isLlmConfigured()) {
     return NextResponse.json(
       {
         reply:
           'El asesor virtual está temporalmente fuera de servicio 🔧. Escríbenos directo por WhatsApp y con mucho gusto te atendemos.',
-        error: 'gateway_not_configured',
+        error: 'llm_not_configured',
+        debug: { providersAvailable },
       },
       { status: 200 }
     )
