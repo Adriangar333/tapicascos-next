@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, Wrench, Image, MessageSquare, Settings, LogOut, ChevronLeft, FileText, Link2, Layers, Package, Bot, Tags } from 'lucide-react'
+import { LayoutDashboard, Wrench, Image as ImageIcon, MessageSquare, Settings, LogOut, ChevronLeft, FileText, Link2, Layers, Package, Bot, Tags } from 'lucide-react'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -15,7 +16,7 @@ const navItems = [
   { href: '/admin/servicios', label: 'Servicios', icon: Wrench },
   { href: '/admin/categorias', label: 'Categorías', icon: Tags },
   { href: '/admin/accesorios', label: 'Accesorios', icon: Package },
-  { href: '/admin/galeria', label: 'Galería', icon: Image },
+  { href: '/admin/galeria', label: 'Galería', icon: ImageIcon },
   { href: '/admin/testimonios', label: 'Testimonios', icon: MessageSquare },
   { href: '/admin/config', label: 'Configuración', icon: Settings },
 ]
@@ -54,13 +55,25 @@ export default function Sidebar() {
   return (
     <aside className="admin-sidebar w-64 min-h-screen flex flex-col py-6 px-4 flex-shrink-0">
       {/* Logo */}
-      <div className="px-3 mb-8">
-        <h1 className="text-xl font-black">
-          <span className="text-[#FF6B35]">TAPI</span>
-          <span className="text-white">CASCOS</span>
-        </h1>
-        <p className="text-xs text-gray-500 mt-1">Admin Panel</p>
-      </div>
+      <Link href="/admin" className="flex items-center gap-3 px-2 mb-8 group">
+        <div className="relative w-12 h-12 flex-shrink-0 rounded-xl overflow-hidden bg-white/5 ring-1 ring-white/10 group-hover:ring-[#FF6B35]/50 transition">
+          <Image
+            src="/logo-tapicascos.webp"
+            alt="Tapicascos Barranquilla"
+            fill
+            sizes="48px"
+            className="object-contain p-1"
+            priority
+          />
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-sm font-black leading-tight">
+            <span className="text-[#FF6B35]">TAPI</span>
+            <span className="text-white">CASCOS</span>
+          </h1>
+          <p className="text-[10px] text-gray-500 leading-tight mt-0.5">Admin Panel</p>
+        </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1">
