@@ -104,7 +104,38 @@ export async function POST(req: NextRequest) {
 
       const choice = response.choices[0]
       const msg = choice.message
-      const toolCalls = msg.tool_calls ?? []
+      let toolCalls = msg.tool_calls ?? []
+
+      // Fallback: algunos modelos (Llama) emiten tool calls como texto
+      // `<function=name>{...}</function>` o `<function=name></function>`
+      // en vez de usar el campo tool_calls. Los parseamos manualmente.
+      if (!toolCalls.length && msg.content) {
+        const re = /<function=([a-zA-Z_][\w]*)>([\s\S]*?)<\/function>/g
+        const parsed: typeof toolCalls = []
+        let m: RegExpExecArray | null
+        let idx = 0
+        while ((m = re.exec(msg.content)) !== null) {
+          const name = m[1]
+          let args = (m[2] || '').trim()
+          if (!args || args === '{}') args = '{}'
+          // Validar que sea JSON; si no, envolver
+          try {
+            JSON.parse(args)
+          } catch {
+            args = '{}'
+          }
+          parsed.push({
+            id: `call_${Date.now()}_${idx++}`,
+            type: 'function',
+            function: { name, arguments: args },
+          })
+        }
+        if (parsed.length) {
+          toolCalls = parsed
+          // Limpia el texto para que no se muestre al usuario
+          msg.content = msg.content.replace(re, '').trim() || null
+        }
+      }
 
       if (!toolCalls.length) {
         assistantText = msg.content ?? ''
