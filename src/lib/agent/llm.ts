@@ -84,6 +84,16 @@ const PROVIDERS: Provider[] = [
       'X-Title': 'Tapicascos Barranquilla',
     },
   },
+  {
+    name: 'openrouter-deepseek',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    model: 'deepseek/deepseek-chat-v3.1:free',
+    getToken: () => process.env.OPENROUTER_API_KEY,
+    extraHeaders: {
+      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tapicascos.vercel.app',
+      'X-Title': 'Tapicascos Barranquilla',
+    },
+  },
   // --- xAI: opcional si tienes la integración ---
   {
     name: 'xai',
