@@ -93,11 +93,14 @@ export async function POST(req: NextRequest) {
     try {
       const desc = await describeHelmetImage(latest_photo_url)
       if (desc) {
+        visionStatus = 'ok'
+        visionDescription = desc
         conversation.push({
           role: 'system',
           content: `[info visual de la foto que el cliente acaba de enviar]: ${desc}`,
         })
       } else {
+        visionStatus = 'failed'
         conversation.push({
           role: 'system',
           content:
@@ -105,6 +108,7 @@ export async function POST(req: NextRequest) {
         })
       }
     } catch (visionErr) {
+      visionStatus = 'failed'
       console.warn('[agent/chat] vision error:', visionErr)
     }
   }
@@ -113,6 +117,8 @@ export async function POST(req: NextRequest) {
   let assistantText = ''
   let iterations = 0
   let modelUsed = ''
+  let visionStatus: 'ok' | 'failed' | 'skipped' = 'skipped'
+  let visionDescription: string | null = null
 
   try {
     while (iterations < MAX_ITERATIONS) {
@@ -260,5 +266,6 @@ export async function POST(req: NextRequest) {
     reply: assistantText || 'Perdón, se me fue la respuesta. ¿Puedes repetirme?',
     quote_id: savedQuoteId,
     model: modelUsed,
+    debug: { vision: visionStatus, vision_desc: visionDescription },
   })
 }

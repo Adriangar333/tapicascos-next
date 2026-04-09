@@ -114,15 +114,31 @@ export async function describeHelmetImage(imageUrl: string): Promise<string | nu
     extraHeaders?: Record<string, string>
   }> = [
     {
-      name: 'groq-vision',
+      name: 'groq-vision-scout',
       endpoint: 'https://api.groq.com/openai/v1/chat/completions',
       model: 'meta-llama/llama-4-scout-17b-16e-instruct',
       token: process.env.GROQ_API_KEY,
     },
     {
-      name: 'openrouter-vision',
+      name: 'groq-vision-maverick',
+      endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+      model: 'meta-llama/llama-4-maverick-17b-128e-instruct',
+      token: process.env.GROQ_API_KEY,
+    },
+    {
+      name: 'openrouter-vision-gemini',
       endpoint: 'https://openrouter.ai/api/v1/chat/completions',
       model: 'google/gemini-2.0-flash-exp:free',
+      token: process.env.OPENROUTER_API_KEY,
+      extraHeaders: {
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tapicascos.vercel.app',
+        'X-Title': 'Tapicascos Barranquilla',
+      },
+    },
+    {
+      name: 'openrouter-vision-llama',
+      endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+      model: 'meta-llama/llama-3.2-11b-vision-instruct:free',
       token: process.env.OPENROUTER_API_KEY,
       extraHeaders: {
         'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tapicascos.vercel.app',
@@ -161,7 +177,8 @@ export async function describeHelmetImage(imageUrl: string): Promise<string | nu
         signal: AbortSignal.timeout(20_000),
       })
       if (!res.ok) {
-        console.warn(`[vision] ${p.name} HTTP ${res.status}`)
+        const txt = await res.text().catch(() => '')
+        console.warn(`[vision] ${p.name} HTTP ${res.status}: ${txt.slice(0, 200)}`)
         continue
       }
       const json = (await res.json()) as ChatCompletionResponse
