@@ -108,8 +108,35 @@ const PROVIDERS: Provider[] = [
 export type VisionAttempt = { provider: string; ok: boolean; status?: number; error?: string }
 export type VisionResult = { text: string | null; attempts: VisionAttempt[] }
 
+async function fetchImageAsDataUrl(url: string): Promise<{ dataUrl: string | null; error?: string }> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        // UA legítimo para evitar 403 en wikipedia/cdns
+        'User-Agent': 'Mozilla/5.0 (compatible; TapicascosBot/1.0; +https://tapicascos.vercel.app)',
+        Accept: 'image/*,*/*;q=0.8',
+      },
+      signal: AbortSignal.timeout(12_000),
+    })
+    if (!res.ok) return { dataUrl: null, error: `fetch_${res.status}` }
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.byteLength > 5 * 1024 * 1024) return { dataUrl: null, error: 'too_large' }
+    const ct = res.headers.get('content-type') || 'image/jpeg'
+    return { dataUrl: `data:${ct};base64,${buf.toString('base64')}` }
+  } catch (e) {
+    return { dataUrl: null, error: e instanceof Error ? e.message : 'fetch_error' }
+  }
+}
+
 export async function describeHelmetImage(imageUrl: string): Promise<VisionResult> {
   const attempts: VisionAttempt[] = []
+  // Pre-fetch a base64 para no depender de que cada provider pueda traer la URL
+  const { dataUrl, error: fetchErr } = await fetchImageAsDataUrl(imageUrl)
+  if (!dataUrl) {
+    attempts.push({ provider: 'prefetch', ok: false, error: fetchErr ?? 'unknown' })
+    return { text: null, attempts }
+  }
+  const inlineUrl = dataUrl
   const visionProviders: Array<{
     name: string
     endpoint: string
@@ -124,25 +151,15 @@ export async function describeHelmetImage(imageUrl: string): Promise<VisionResul
       token: process.env.GROQ_API_KEY,
     },
     {
-      name: 'groq-vision-maverick',
-      endpoint: 'https://api.groq.com/openai/v1/chat/completions',
-      model: 'meta-llama/llama-4-maverick-17b-128e-instruct',
-      token: process.env.GROQ_API_KEY,
+      name: 'gemini-vision',
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+      model: 'gemini-2.0-flash',
+      token: process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY,
     },
     {
-      name: 'openrouter-vision-gemini',
+      name: 'openrouter-qwen-vl',
       endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-      model: 'google/gemini-2.0-flash-exp:free',
-      token: process.env.OPENROUTER_API_KEY,
-      extraHeaders: {
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tapicascos.vercel.app',
-        'X-Title': 'Tapicascos Barranquilla',
-      },
-    },
-    {
-      name: 'openrouter-vision-llama',
-      endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-      model: 'meta-llama/llama-3.2-11b-vision-instruct:free',
+      model: 'qwen/qwen2.5-vl-72b-instruct:free',
       token: process.env.OPENROUTER_API_KEY,
       extraHeaders: {
         'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tapicascos.vercel.app',
@@ -176,7 +193,7 @@ export async function describeHelmetImage(imageUrl: string): Promise<VisionResul
               role: 'user',
               content: [
                 { type: 'text', text: prompt },
-                { type: 'image_url', image_url: { url: imageUrl } },
+                { type: 'image_url', image_url: { url: inlineUrl } },
               ],
             },
           ],
