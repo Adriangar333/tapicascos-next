@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Plus, Pencil, Trash2, Save, X } from 'lucide-react'
+import { slugify } from '@/lib/utils/slug'
 
 type Category = {
   id: string
@@ -13,15 +14,6 @@ type Category = {
   sort_order: number | null
   active: boolean | null
   created_at: string | null
-}
-
-function slugify(s: string) {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
 }
 
 export default function CategoriasAdmin() {

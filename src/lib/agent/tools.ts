@@ -103,17 +103,17 @@ export const TOOLS: OpenAITool[] = [
 
 // ---------- Tool handlers (lo que se ejecuta server-side) ----------
 
-function formatPrice(min: number, max: number | null): string {
+export function formatPrice(min: number, max: number | null): string {
   const fmt = (n: number) => '$' + n.toLocaleString('es-CO')
   if (!max || max === min) return `desde ${fmt(min)}`
   return `${fmt(min)} – ${fmt(max)}`
 }
 
-function sanitizePhone(raw: string): string {
+export function sanitizePhone(raw: string): string {
   return raw.replace(/\D/g, '')
 }
 
-function isValidPhone(phone: string): boolean {
+export function isValidPhone(phone: string): boolean {
   const digits = sanitizePhone(phone)
   return digits.length >= 10 && digits.length <= 13
 }
