@@ -28,7 +28,7 @@ export function useSalesAgent() {
   const [msgs, setMsgs] = useState<AgentMsg[]>([{ role: 'assistant', content: GREETING }])
   const [busy, setBusy] = useState(false)
   const [quoteId, setQuoteId] = useState<string | null>(null)
-  const [ttsOn, setTtsOn] = useState(false)
+  const [ttsOn, setTtsOn] = useState(true)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const warmedRef = useRef(false)
 
