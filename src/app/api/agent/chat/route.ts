@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {
   console.log('[agent/chat] providers available:', providersAvailable.join(', ') || 'NONE')
   console.log('[agent/chat] env check:', {
     GROQ_API_KEY: !!process.env.GROQ_API_KEY,
+    GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
+    OPENROUTER_API_KEY: !!process.env.OPENROUTER_API_KEY,
     XAI_API_KEY: !!process.env.XAI_API_KEY,
     AI_GATEWAY_API_KEY: !!process.env.AI_GATEWAY_API_KEY,
     VERCEL_OIDC_TOKEN: !!process.env.VERCEL_OIDC_TOKEN,

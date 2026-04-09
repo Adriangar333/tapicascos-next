@@ -51,7 +51,9 @@ type Provider = {
 }
 
 // Orden de intentos (primero el mejor para tool use + más rápido)
+// Cualquiera de estas env vars basta para que el agente funcione.
 const PROVIDERS: Provider[] = [
+  // --- Groq: free tier, ~1000 tok/s, tool use sólido (RECOMENDADO) ---
   {
     name: 'groq',
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
@@ -64,12 +66,32 @@ const PROVIDERS: Provider[] = [
     model: 'llama-3.1-8b-instant',
     getToken: () => process.env.GROQ_API_KEY,
   },
+  // --- Google Gemini: free tier generoso, OpenAI-compatible endpoint ---
+  {
+    name: 'gemini',
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    model: 'gemini-2.0-flash',
+    getToken: () => process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY,
+  },
+  // --- OpenRouter: cualquier modelo :free funciona ---
+  {
+    name: 'openrouter',
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    getToken: () => process.env.OPENROUTER_API_KEY,
+    extraHeaders: {
+      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tapicascos.vercel.app',
+      'X-Title': 'Tapicascos Barranquilla',
+    },
+  },
+  // --- xAI: opcional si tienes la integración ---
   {
     name: 'xai',
     endpoint: 'https://api.x.ai/v1/chat/completions',
     model: 'grok-2-1212',
     getToken: () => process.env.XAI_API_KEY,
   },
+  // --- Vercel AI Gateway: opcional ---
   {
     name: 'vercel-gateway',
     endpoint: 'https://ai-gateway.vercel.sh/v1/chat/completions',
