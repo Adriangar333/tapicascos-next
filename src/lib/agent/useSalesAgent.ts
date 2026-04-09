@@ -129,34 +129,45 @@ export function useSalesAgent() {
   )
 
   const uploadPhoto = useCallback(
-    async (file: File) => {
+    async (fileIn: File) => {
       setBusy(true)
       try {
+        // Comprimir/redimensionar en el navegador para esquivar el límite
+        // de 4.5MB del body de Vercel y acelerar el upload en mobile.
+        const file = await compressImage(fileIn).catch(() => fileIn)
+
         const fd = new FormData()
         fd.append('file', file)
         fd.append('session_id', sessionId)
         const res = await fetch('/api/agent/upload', { method: 'POST', body: fd })
-        const data = await res.json()
 
-        if (data.error || !data.url) {
+        let data: { url?: string; error?: string } = {}
+        try {
+          data = await res.json()
+        } catch {
+          data = { error: `HTTP ${res.status}` }
+        }
+
+        if (!res.ok || data.error || !data.url) {
+          const reason = data.error ?? `HTTP ${res.status}`
           setMsgs((prev) => [
             ...prev,
             {
               role: 'assistant',
-              content: `No pude subir esa imagen${data.error ? `: ${data.error}` : ''}. Intenta con otra.`,
+              content: `No pude subir esa imagen (${reason}). Intenta con otra más pequeña o con mejor conexión.`,
             },
           ])
           setBusy(false)
           return
         }
 
-        // setBusy se libera dentro de sendText
         setBusy(false)
-        await sendText('📎 Te acabo de enviar una foto del casco.', data.url as string)
-      } catch {
+        await sendText('📎 Te acabo de enviar una foto del casco.', data.url)
+      } catch (err) {
+        const m = err instanceof Error ? err.message : 'error'
         setMsgs((prev) => [
           ...prev,
-          { role: 'assistant', content: 'No pude subir esa imagen. Intenta con otra.' },
+          { role: 'assistant', content: `No pude subir esa imagen (${m}). Intenta con otra.` },
         ])
         setBusy(false)
       }
@@ -189,4 +200,48 @@ export function useSalesAgent() {
     uploadPhoto,
     waHandoffLink,
   }
+}
+
+// Downscale + JPEG (q=0.85). Esquiva el límite de 4.5MB de Vercel y
+// reduce el tamaño para que los providers de vision no rechacen la imagen.
+async function compressImage(file: File, maxDim = 1280, quality = 0.85): Promise<File> {
+  if (typeof window === 'undefined') return file
+  if (!file.type.startsWith('image/')) return file
+
+  const bitmap = await createImageBitmap(file).catch(async () => {
+    // Fallback para navegadores sin createImageBitmap
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    try {
+      await new Promise<void>((ok, err) => {
+        img.onload = () => ok()
+        img.onerror = () => err(new Error('img_load_failed'))
+        img.src = url
+      })
+      return img as unknown as ImageBitmap
+    } finally {
+      URL.revokeObjectURL(url)
+    }
+  })
+
+  const w = (bitmap as ImageBitmap).width
+  const h = (bitmap as ImageBitmap).height
+  if (!w || !h) return file
+  const scale = Math.min(1, maxDim / Math.max(w, h))
+  const outW = Math.round(w * scale)
+  const outH = Math.round(h * scale)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = outW
+  canvas.height = outH
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return file
+  ctx.drawImage(bitmap as CanvasImageSource, 0, 0, outW, outH)
+
+  const blob: Blob | null = await new Promise((resolve) =>
+    canvas.toBlob((b) => resolve(b), 'image/jpeg', quality),
+  )
+  if (!blob) return file
+  const name = (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg'
+  return new File([blob], name, { type: 'image/jpeg' })
 }
