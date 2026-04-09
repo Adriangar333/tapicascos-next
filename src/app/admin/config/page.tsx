@@ -24,7 +24,19 @@ export default function ConfigAdmin() {
 
   const fetchData = useCallback(async () => {
     const { data } = await supabase.from('site_config').select('*').order('key')
-    if (data) setConfigs(data)
+    if (data && data.length === 0) {
+      // Primera vez: sembrar defaults para que el admin no vea pantalla vacía
+      const toInsert = defaultConfigs.map((d) => ({
+        key: d.key,
+        value: d.value,
+        description: d.description,
+      }))
+      await supabase.from('site_config').insert(toInsert)
+      const { data: reload } = await supabase.from('site_config').select('*').order('key')
+      if (reload) setConfigs(reload)
+    } else if (data) {
+      setConfigs(data)
+    }
     setLoading(false)
   }, [])
 

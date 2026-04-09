@@ -17,6 +17,7 @@ export default function ServiciosAdmin() {
   const [isNew, setIsNew] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const supabase = createClient()
 
   const fetchData = useCallback(async () => {
@@ -33,6 +34,15 @@ export default function ServiciosAdmin() {
 
   const handleSave = async () => {
     if (!editing) return
+    setErrorMsg(null)
+    if (!editing.name?.trim()) {
+      setErrorMsg('El nombre es obligatorio.')
+      return
+    }
+    if (!editing.category_id) {
+      setErrorMsg('Selecciona una categoría antes de guardar.')
+      return
+    }
     setSaving(true)
     const payload = {
       name: editing.name,
@@ -46,15 +56,17 @@ export default function ServiciosAdmin() {
       featured: editing.featured ?? false,
     }
 
-    if (isNew) {
-      await supabase.from('services').insert(payload)
-    } else {
-      await supabase.from('services').update(payload).eq('id', editing.id)
-    }
+    const { error } = isNew
+      ? await supabase.from('services').insert(payload)
+      : await supabase.from('services').update(payload).eq('id', editing.id)
 
+    setSaving(false)
+    if (error) {
+      setErrorMsg(error.message)
+      return
+    }
     setEditing(null)
     setIsNew(false)
-    setSaving(false)
     fetchData()
   }
 
@@ -90,7 +102,15 @@ export default function ServiciosAdmin() {
           <p className="text-gray-400 text-sm">Gestiona los servicios y precios de Tapicascos</p>
         </div>
         <button
-          onClick={() => { setEditing({ ...emptyService, category_id: categories[0]?.id }); setIsNew(true) }}
+          onClick={() => {
+            if (categories.length === 0) {
+              setErrorMsg('Crea primero una categoría desde la base de datos antes de añadir un servicio.')
+              return
+            }
+            setEditing({ ...emptyService, category_id: categories[0]?.id })
+            setIsNew(true)
+            setErrorMsg(null)
+          }}
           className="btn-primary flex items-center gap-2 text-sm"
         >
           <Plus size={16} /> Nuevo Servicio
@@ -210,6 +230,11 @@ export default function ServiciosAdmin() {
               </div>
             </div>
 
+            {errorMsg && (
+              <p className="mt-4 text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
+                {errorMsg}
+              </p>
+            )}
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleSave}

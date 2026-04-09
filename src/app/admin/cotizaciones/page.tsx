@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { updateQuoteStatus } from './actions'
 import ConversationModal from './ConversationModal'
+import QuoteSearch from './QuoteSearch'
+import NotesEditor from './NotesEditor'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,8 +55,11 @@ export default async function CotizacionesPage() {
             Mueve cada cotización por las etapas para hacerle seguimiento.
           </p>
         </div>
-        <div className="text-sm text-gray-400">
-          Total: <span className="text-white font-bold">{quotes?.length ?? 0}</span>
+        <div className="flex items-center gap-4">
+          <QuoteSearch />
+          <div className="text-sm text-gray-400">
+            Total: <span className="text-white font-bold">{quotes?.length ?? 0}</span>
+          </div>
         </div>
       </div>
 
@@ -74,7 +79,12 @@ export default async function CotizacionesPage() {
                   const waPhone = q.phone.replace(/\D/g, '')
                   const waLink = `https://wa.me/57${waPhone.startsWith('57') ? waPhone.slice(2) : waPhone}?text=${encodeURIComponent(`Hola ${q.name}, te escribo de Tapicascos por tu solicitud de ${serviceLabels[q.service_type] ?? q.service_type}.`)}`
                   return (
-                    <div key={q.id} className="p-3 rounded-xl bg-[#0F1428] border border-white/10">
+                    <div
+                      key={q.id}
+                      data-quote-card
+                      data-quote-search={`${q.name} ${q.phone} ${q.description ?? ''} ${serviceLabels[q.service_type] ?? ''}`}
+                      className="p-3 rounded-xl bg-[#0F1428] border border-white/10"
+                    >
                       <div className="flex justify-between items-start gap-2 mb-2">
                         <h3 className="font-bold text-sm truncate">{q.name}</h3>
                         <span className="text-[10px] text-gray-500 whitespace-nowrap">
@@ -103,6 +113,7 @@ export default async function CotizacionesPage() {
                           <ConversationModal quoteId={q.id} clientName={q.name} />
                         </div>
                       )}
+                      <NotesEditor id={q.id} initial={q.notes ?? null} />
                       <div className="flex gap-1">
                         <a
                           href={waLink}

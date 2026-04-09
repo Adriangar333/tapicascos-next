@@ -29,7 +29,11 @@ export default function GaleriaAdmin() {
       const path = `gallery/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
       const { error } = await supabase.storage.from('images').upload(path, file)
-      if (error) { console.error(error); continue }
+      if (error) {
+        console.error(error)
+        alert(`No se pudo subir ${file.name}: ${error.message}`)
+        continue
+      }
 
       const { data: urlData } = supabase.storage.from('images').getPublicUrl(path)
 

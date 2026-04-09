@@ -1,13 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { LayoutDashboard, Wrench, Image, MessageSquare, Settings, LogOut, ChevronLeft, FileText, Link2, Layers } from 'lucide-react'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/cotizaciones', label: 'Pipeline', icon: FileText },
+  { href: '/admin/cotizaciones', label: 'Pipeline', icon: FileText, badgeKey: 'quotes_new' },
   { href: '/admin/compartir', label: 'Generar links', icon: Link2 },
   { href: '/admin/antes-despues', label: 'Antes/Después', icon: Layers },
   { href: '/admin/servicios', label: 'Servicios', icon: Wrench },
@@ -19,6 +20,26 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const [newQuotes, setNewQuotes] = useState<number>(0)
+
+  // Badge: cotizaciones en estado "new". Polling cada 60s.
+  useEffect(() => {
+    let alive = true
+    const supabase = createClient()
+    const load = async () => {
+      const { count } = await supabase
+        .from('quotes')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'new')
+      if (alive && typeof count === 'number') setNewQuotes(count)
+    }
+    load()
+    const t = setInterval(load, 60_000)
+    return () => {
+      alive = false
+      clearInterval(t)
+    }
+  }, [pathname])
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -54,7 +75,12 @@ export default function Sidebar() {
               }`}
             >
               <Icon size={18} />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.badgeKey === 'quotes_new' && newQuotes > 0 && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FF6B35] text-white min-w-[20px] text-center">
+                  {newQuotes}
+                </span>
+              )}
             </Link>
           )
         })}
