@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('')
@@ -80,7 +81,7 @@ export default function AdminLogin() {
         </form>
 
         <p className="text-center text-gray-600 text-xs mt-6">
-          <a href="/" className="hover:text-gray-400">&larr; Volver al sitio</a>
+          <Link href="/" className="hover:text-gray-400">&larr; Volver al sitio</Link>
         </p>
       </div>
     </div>
