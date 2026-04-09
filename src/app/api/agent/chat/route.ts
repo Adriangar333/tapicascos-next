@@ -158,7 +158,14 @@ export async function POST(req: NextRequest) {
         } catch {
           // ignora args mal formados
         }
-        const result = await runTool(tc.function.name, input)
+        let result: string
+        try {
+          result = await runTool(tc.function.name, input)
+        } catch (toolErr) {
+          const tmsg = toolErr instanceof Error ? toolErr.message : 'unknown'
+          console.error('[agent/chat] tool error:', tc.function.name, tmsg)
+          result = JSON.stringify({ error: `tool_failed: ${tmsg}` })
+        }
 
         conversation.push({
           role: 'tool',

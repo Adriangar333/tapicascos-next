@@ -105,9 +105,10 @@ export async function runTool(
   input: Record<string, unknown>
 ): Promise<string> {
   const supabase = await createClient()
+  const args: Record<string, unknown> = input && typeof input === 'object' ? input : {}
 
   if (name === 'get_services') {
-    const categoryHint = ((input.category as string) || '').toLowerCase()
+    const categoryHint = ((args.category as string) || '').toLowerCase()
     const { data, error } = await supabase
       .from('services')
       .select('name, slug, description, price_min, price_max, category:categories(slug, name)')
@@ -137,7 +138,7 @@ export async function runTool(
 
   if (name === 'save_lead') {
     const { name: clientName, phone, service_type, helmet_brand, helmet_model, description } =
-      input as {
+      args as {
         name: string
         phone: string
         service_type: string
@@ -181,7 +182,7 @@ export async function runTool(
   }
 
   if (name === 'get_whatsapp_link') {
-    const quote_id = input.quote_id as string
+    const quote_id = args.quote_id as string
     const { data, error } = await supabase
       .from('quotes')
       .select('name, phone, service_type, description, helmet_brand, helmet_model')
