@@ -87,7 +87,7 @@ const PROVIDERS: Provider[] = [
   {
     name: 'openrouter-deepseek',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'deepseek/deepseek-chat:free',
+    model: 'deepseek/deepseek-r1:free',
     getToken: () => process.env.OPENROUTER_API_KEY,
     extraHeaders: {
       'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tapicascos.vercel.app',
@@ -271,6 +271,7 @@ export async function callOpenRouter({
   }
 
   let lastErr: unknown = null
+  const allErrors: string[] = []
 
   for (const provider of available) {
     const token = provider.getToken()!
@@ -322,6 +323,7 @@ export async function callOpenRouter({
         lastErr = new Error(
           `[${provider.name}] HTTP ${res.status} (${dt}ms): ${text.slice(0, 200)}`
         )
+        allErrors.push(String(lastErr))
         console.warn('[llm] fallback →', String(lastErr))
         continue
       }
@@ -331,6 +333,7 @@ export async function callOpenRouter({
         lastErr = new Error(
           `[${provider.name}] upstream error: ${json.error?.message ?? 'no choices'}`
         )
+        allErrors.push(String(lastErr))
         console.warn('[llm] fallback →', String(lastErr))
         continue
       }
@@ -339,18 +342,14 @@ export async function callOpenRouter({
       return { response: json, modelUsed: `${provider.name}/${provider.model}` }
     } catch (err) {
       lastErr = err
-      console.warn(
-        '[llm] fallback →',
-        provider.name,
-        err instanceof Error ? err.message : String(err)
-      )
+      const msg = `[${provider.name}] ${err instanceof Error ? err.message : String(err)}`
+      allErrors.push(msg)
+      console.warn('[llm] fallback →', msg)
       continue
     }
   }
 
   throw new Error(
-    `Todos los proveedores fallaron. Último error: ${
-      lastErr instanceof Error ? lastErr.message : String(lastErr)
-    }`
+    `Todos los proveedores fallaron. Errores: ${allErrors.join(' | ') || String(lastErr)}`
   )
 }
