@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { updateQuoteStatus } from './actions'
+import ConversationModal from './ConversationModal'
 
 export const dynamic = 'force-dynamic'
 
@@ -85,13 +86,23 @@ export default async function CotizacionesPage() {
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B35]/20 text-[#FF6B35]">
                           {serviceLabels[q.service_type] ?? q.service_type}
                         </span>
-                        {q.source && q.source !== 'direct' && (
+                        {q.source === 'agente_ia' && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-semibold">
+                            🤖 IA
+                          </span>
+                        )}
+                        {q.source && q.source !== 'direct' && q.source !== 'agente_ia' && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
                             {q.source}
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-gray-300 line-clamp-3 mb-3">{q.description}</p>
+                      {q.source === 'agente_ia' && (
+                        <div className="mb-2">
+                          <ConversationModal quoteId={q.id} clientName={q.name} />
+                        </div>
+                      )}
                       <div className="flex gap-1">
                         <a
                           href={waLink}
