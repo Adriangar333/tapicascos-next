@@ -5,7 +5,6 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import Navbar from '@/components/landing/Navbar'
 import Footer from '@/components/landing/Footer'
-import WhatsAppButton from '@/components/landing/WhatsAppButton'
 import ShareButtons from '@/components/landing/ShareButtons'
 
 export const revalidate = 300
@@ -169,7 +168,6 @@ export default async function ServiceDetailPage({
         </div>
       </main>
       <Footer />
-      <WhatsAppButton />
     </>
   )
 }

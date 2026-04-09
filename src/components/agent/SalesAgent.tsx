@@ -193,7 +193,7 @@ export default function SalesAgent() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Abrir asesor virtual"
-        className={`fixed bottom-[104px] right-6 z-50 h-14 w-14 rounded-full shadow-2xl transition-all hover:scale-110 ${
+        className={`fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-2xl transition-all hover:scale-110 ${
           open ? 'bg-gray-700' : 'bg-gradient-to-br from-[#FF6B35] to-[#FFD700]'
         }`}
         style={{ boxShadow: '0 0 30px rgba(255,107,53,0.5)' }}
@@ -207,7 +207,7 @@ export default function SalesAgent() {
       {/* Panel */}
       {open && (
         <div
-          className="fixed bottom-[180px] right-6 z-50 w-[360px] max-w-[calc(100vw-32px)] h-[560px] max-h-[calc(100vh-220px)] rounded-2xl border border-white/10 bg-[#0A0E1A] shadow-2xl flex flex-col overflow-hidden"
+          className="fixed bottom-[88px] right-6 z-50 w-[360px] max-w-[calc(100vw-32px)] h-[540px] max-h-[calc(100vh-120px)] rounded-2xl border border-white/10 bg-[#0A0E1A] shadow-2xl flex flex-col overflow-hidden"
           style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(255,107,53,0.15)' }}
         >
           {/* Header */}

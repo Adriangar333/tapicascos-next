@@ -6,7 +6,6 @@ import Gallery from '@/components/landing/Gallery'
 import Testimonials from '@/components/landing/Testimonials'
 import Contact from '@/components/landing/Contact'
 import Footer from '@/components/landing/Footer'
-import WhatsAppButton from '@/components/landing/WhatsAppButton'
 import { createClient } from '@/lib/supabase/server'
 
 export const revalidate = 60
@@ -51,7 +50,6 @@ export default async function HomePage() {
         <Contact />
       </main>
       <Footer />
-      <WhatsAppButton />
     </>
   )
 }
