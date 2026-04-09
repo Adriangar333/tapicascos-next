@@ -4,14 +4,16 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, Wrench, Image, MessageSquare, Settings, LogOut, ChevronLeft, FileText, Link2, Layers, Package } from 'lucide-react'
+import { LayoutDashboard, Wrench, Image, MessageSquare, Settings, LogOut, ChevronLeft, FileText, Link2, Layers, Package, Bot, Tags } from 'lucide-react'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/cotizaciones', label: 'Pipeline', icon: FileText, badgeKey: 'quotes_new' },
+  { href: '/admin/conversaciones', label: 'Chats Tapi', icon: Bot },
   { href: '/admin/compartir', label: 'Generar links', icon: Link2 },
   { href: '/admin/antes-despues', label: 'Antes/Después', icon: Layers },
   { href: '/admin/servicios', label: 'Servicios', icon: Wrench },
+  { href: '/admin/categorias', label: 'Categorías', icon: Tags },
   { href: '/admin/accesorios', label: 'Accesorios', icon: Package },
   { href: '/admin/galeria', label: 'Galería', icon: Image },
   { href: '/admin/testimonios', label: 'Testimonios', icon: MessageSquare },
