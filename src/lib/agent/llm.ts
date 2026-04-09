@@ -61,9 +61,17 @@ const PROVIDERS: Provider[] = [
     getToken: () => process.env.GROQ_API_KEY,
   },
   {
-    name: 'groq-fallback',
+    // gpt-oss-120b en Groq: tool use nativo + TPD separado del 70b
+    name: 'groq-oss',
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
-    model: 'llama-3.1-8b-instant',
+    model: 'openai/gpt-oss-120b',
+    getToken: () => process.env.GROQ_API_KEY,
+  },
+  {
+    // qwen 32b en Groq: otro bucket TPD independiente con tool use
+    name: 'groq-qwen',
+    endpoint: 'https://api.groq.com/openai/v1/chat/completions',
+    model: 'qwen/qwen3-32b',
     getToken: () => process.env.GROQ_API_KEY,
   },
   // --- Google Gemini: free tier generoso, OpenAI-compatible endpoint ---
@@ -85,9 +93,9 @@ const PROVIDERS: Provider[] = [
     },
   },
   {
-    name: 'openrouter-deepseek',
+    name: 'openrouter-mistral',
     endpoint: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'deepseek/deepseek-r1:free',
+    model: 'mistralai/mistral-small-3.2-24b-instruct:free',
     getToken: () => process.env.OPENROUTER_API_KEY,
     extraHeaders: {
       'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL ?? 'https://tapicascos.vercel.app',
