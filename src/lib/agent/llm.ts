@@ -105,7 +105,11 @@ const PROVIDERS: Provider[] = [
  * Intenta Groq llama-4-scout (gratis, soporta image_url) y cae a OpenRouter gemini flash free.
  * Devuelve null si ningún proveedor responde — el caller debe tolerarlo.
  */
-export async function describeHelmetImage(imageUrl: string): Promise<string | null> {
+export type VisionAttempt = { provider: string; ok: boolean; status?: number; error?: string }
+export type VisionResult = { text: string | null; attempts: VisionAttempt[] }
+
+export async function describeHelmetImage(imageUrl: string): Promise<VisionResult> {
+  const attempts: VisionAttempt[] = []
   const visionProviders: Array<{
     name: string
     endpoint: string
@@ -151,7 +155,10 @@ export async function describeHelmetImage(imageUrl: string): Promise<string | nu
     'Mira esta foto de un casco de moto y descríbela en 1-2 oraciones en español, centrándote SOLO en lo que se ve: tipo de casco (integral/abierto/modular), color principal, estado visible del interior si se aprecia (limpio, desgastado, roto), y cualquier daño externo evidente (rayones, golpes, pintura dañada). No inventes detalles. No uses viñetas. No digas "en la imagen" ni "la foto". Si no puedes ver bien el casco, di exactamente: "casco de moto, no se aprecia suficiente detalle".'
 
   for (const p of visionProviders) {
-    if (!p.token) continue
+    if (!p.token) {
+      attempts.push({ provider: p.name, ok: false, error: 'no_token' })
+      continue
+    }
     try {
       const res = await fetch(p.endpoint, {
         method: 'POST',
@@ -178,20 +185,26 @@ export async function describeHelmetImage(imageUrl: string): Promise<string | nu
       })
       if (!res.ok) {
         const txt = await res.text().catch(() => '')
-        console.warn(`[vision] ${p.name} HTTP ${res.status}: ${txt.slice(0, 200)}`)
+        const snippet = txt.slice(0, 200)
+        console.warn(`[vision] ${p.name} HTTP ${res.status}: ${snippet}`)
+        attempts.push({ provider: p.name, ok: false, status: res.status, error: snippet })
         continue
       }
       const json = (await res.json()) as ChatCompletionResponse
       const txt = json.choices?.[0]?.message?.content?.toString().trim()
       if (txt) {
         console.log(`[vision] ✓ ${p.name}`)
-        return txt
+        attempts.push({ provider: p.name, ok: true })
+        return { text: txt, attempts }
       }
+      attempts.push({ provider: p.name, ok: false, error: 'empty_choices' })
     } catch (err) {
-      console.warn(`[vision] ${p.name} error:`, err instanceof Error ? err.message : err)
+      const m = err instanceof Error ? err.message : String(err)
+      console.warn(`[vision] ${p.name} error:`, m)
+      attempts.push({ provider: p.name, ok: false, error: m.slice(0, 200) })
     }
   }
-  return null
+  return { text: null, attempts }
 }
 
 export function getAvailableProviders(): string[] {

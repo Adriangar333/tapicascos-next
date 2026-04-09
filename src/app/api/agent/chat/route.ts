@@ -92,19 +92,21 @@ export async function POST(req: NextRequest) {
   let modelUsed = ''
   let visionStatus: 'ok' | 'failed' | 'skipped' = 'skipped'
   let visionDescription: string | null = null
+  let visionAttempts: unknown = null
 
   // Visión: si el usuario acaba de adjuntar foto, describirla con un modelo
   // multimodal ANTES del loop e inyectar el resultado como nota del sistema
   // para que Tapi no alucine detalles.
   if (latest_photo_url && /^https?:\/\//.test(latest_photo_url)) {
     try {
-      const desc = await describeHelmetImage(latest_photo_url)
-      if (desc) {
+      const visionRes = await describeHelmetImage(latest_photo_url)
+      visionAttempts = visionRes.attempts
+      if (visionRes.text) {
         visionStatus = 'ok'
-        visionDescription = desc
+        visionDescription = visionRes.text
         conversation.push({
           role: 'system',
-          content: `[info visual de la foto que el cliente acaba de enviar]: ${desc}`,
+          content: `[info visual de la foto que el cliente acaba de enviar]: ${visionRes.text}`,
         })
       } else {
         visionStatus = 'failed'
@@ -266,6 +268,6 @@ export async function POST(req: NextRequest) {
     reply: assistantText || 'Perdón, se me fue la respuesta. ¿Puedes repetirme?',
     quote_id: savedQuoteId,
     model: modelUsed,
-    debug: { vision: visionStatus, vision_desc: visionDescription },
+    debug: { vision: visionStatus, vision_desc: visionDescription, vision_attempts: visionAttempts },
   })
 }
